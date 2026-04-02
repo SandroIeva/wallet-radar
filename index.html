@@ -173,6 +173,20 @@ async function fetchBlock() {
   } catch(e) { console.error('block:', e) }
 }
 
+async function fetchAllBalances() {
+  try {
+    const addresses = WALLETS.map(w => w.address).join(",")
+    const d = await api({ module: "account", action: "balancemulti", address: addresses, tag: "latest" })
+    if (!d || d.status !== "1") return {}
+    const map = {}
+    for (const item of d.result) {
+      const eth = Number(BigInt(item.balance)) / 1e18
+      map[item.account.toLowerCase()] = eth.toFixed(2)
+    }
+    return map
+  } catch { return {} }
+}
+
 async function fetchBalance(address) {
   try {
     const d = await api({ module: 'account', action: 'balance', address })
@@ -195,7 +209,7 @@ function renderWallets() {
   const list = document.getElementById('walletList')
   list.innerHTML = ''
   document.getElementById('walletCount').textContent = WALLETS.length
-  WALLETS.forEach((w, i) => {
+  WALLETS.forEach(w => {
     const card = document.createElement('div')
     card.className = 'wallet-card'
     card.innerHTML = `
@@ -210,12 +224,13 @@ function renderWallets() {
         </div>
       </div>`
     list.appendChild(card)
-    setTimeout(() => {
-      fetchBalance(w.address).then(bal => {
-        const el = document.getElementById('bal-' + w.address)
-        if (el) el.textContent = bal
-      })
-    }, i * 400)
+  })
+  // One single API call for all balances
+  fetchAllBalances().then(map => {
+    WALLETS.forEach(w => {
+      const el = document.getElementById('bal-' + w.address)
+      if (el) el.textContent = map[w.address.toLowerCase()] || '—'
+    })
   })
 }
 
