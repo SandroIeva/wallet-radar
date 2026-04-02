@@ -1,13 +1,256 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wallet Radar</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wallet Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f5f4f0; color: #1a1a1a; font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  header {
+    border-bottom: 1px solid #e8e6e0;
+    padding: 20px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0;
+    background: rgba(245,244,240,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .header-title { font-weight: 800; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+  .live-badge { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e8e6e0; padding: 5px 12px; border-radius: 20px; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; animation: pulse 2s infinite; }
+  .live-label { font-size: 11px; color: #888; letter-spacing: 1px; }
+
+  main { padding: 36px 40px; max-width: 1200px; margin: 0 auto; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 32px; }
+  .stat-box { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; padding: 20px 24px; }
+  .stat-label { font-size: 11px; color: #999; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 26px; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #1a1a1a; }
+  .stat-sub { font-size: 11px; color: #bbb; margin-top: 6px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+  .section-label { font-size: 11px; color: #bbb; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+  .wallets-grid { display: flex; flex-direction: column; gap: 8px; }
+  .wallet-card { background: #fff; border: 1px solid #e8e6e0; border-radius: 10px; padding: 14px 18px; transition: border-color 0.2s, box-shadow 0.2s; }
+  .wallet-card:hover { border-color: #bbf7d0; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  .wallet-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .wallet-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #16a34a; background: #f0fdf4; padding: 2px 7px; border-radius: 4px; }
+  .wallet-label { font-size: 12px; color: #999; margin-top: 4px; }
+  .wallet-bal { font-size: 15px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #1a1a1a; }
+  .wallet-bal-sub { font-size: 10px; color: #ccc; text-align: right; margin-top: 2px; }
+
+  .feed-wrapper { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; height: 460px; overflow-y: auto; }
+  .feed-row { display: flex; gap: 10px; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 10px 16px; border-bottom: 1px solid #f5f4f0; animation: slideIn 0.3s ease; }
+  .feed-row:last-child { border-bottom: none; }
+  .feed-time { color: #ccc; flex-shrink: 0; }
+  .feed-wallet { color: #bbb; flex-shrink: 0; font-size: 10px; }
+  .feed-token { color: #1a1a1a; flex-shrink: 0; font-weight: 700; }
+  .feed-value { color: #1a1a1a; margin-left: auto; flex-shrink: 0; }
+  .feed-age { font-size: 10px; color: #ddd; margin-left: 8px; flex-shrink: 0; }
+  .buy { color: #16a34a; }
+  .sell { color: #dc2626; }
+  .placeholder { color: #ccc; font-size: 12px; padding: 24px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+
+  .divider { height: 1px; background: #e8e6e0; margin: 32px 0; }
+  footer { display: flex; justify-content: space-between; padding-bottom: 40px; }
+  footer span { font-size: 10px; color: #ccc; font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 768px) {
+    header { padding: 16px 20px; }
+    main { padding: 24px 20px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .feed-wrapper { height: 320px; }
+  }
+</style>
 </head>
 <body>
-  <div id="app"></div>
-  <script type="module" src="/src/main.js"></script>
+
+<header>
+  <span class="header-title">Wallet Radar</span>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    <span class="live-label">LIVE</span>
+  </div>
+</header>
+
+<main>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-label">Wallets Tracked</div>
+      <div class="stat-value" id="walletCount">—</div>
+      <div class="stat-sub">Ethereum Mainnet</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Transaktionen</div>
+      <div class="stat-value" id="txCount">0</div>
+      <div class="stat-sub">seit Seitenaufruf</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Letzter Block</div>
+      <div class="stat-value" id="blockNum">—</div>
+      <div class="stat-sub" id="blockTime">—</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="section-label">Wallets</div>
+      <div class="wallets-grid" id="walletList">
+        <div class="placeholder">Lade…</div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">
+        <span>Transaktionen</span>
+        <div class="live-dot"></div>
+      </div>
+      <div class="feed-wrapper" id="liveFeed">
+        <div class="placeholder">Warte auf Transaktionen…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <footer>
+    <span>ETHEREUM ON-CHAIN DATEN · ETHERSCAN API</span>
+    <span>sandroieva.com</span>
+  </footer>
+</main>
+
+<script>
+const WALLETS = [
+  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label: 'vitalik.eth' },
+  { address: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', label: 'Binance Whale' },
+  { address: '0x28C6c06298d514Db089934071355E5743bf21d60', label: 'Binance Hot' },
+  { address: '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', label: 'Binance Cold' },
+  { address: '0xF977814e90dA44bFA03b6295A0616a897441aceC', label: 'Binance 8' },
+]
+
+const seenTxs = new Set()
+let txTotal = 0
+
+function shortAddr(a) { return a.slice(0,6) + '…' + a.slice(-4) }
+function formatETH(wei) {
+  const e = parseFloat(wei) / 1e18
+  if (e >= 1000) return e.toFixed(0) + ' ETH'
+  if (e >= 1) return e.toFixed(3) + ' ETH'
+  return e.toFixed(6) + ' ETH'
+}
+function timeAgo(ts) {
+  const d = Date.now()/1000 - parseInt(ts)
+  if (d < 60) return Math.floor(d) + 's'
+  if (d < 3600) return Math.floor(d/60) + 'm'
+  return Math.floor(d/3600) + 'h'
+}
+function nowTime() {
+  const d = new Date()
+  return [d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':')
+}
+
+async function api(params) {
+  const p = new URLSearchParams({ ...params, _t: Date.now() })
+  const r = await fetch('/api/etherscan?' + p)
+  return r.json()
+}
+
+async function fetchBlock() {
+  try {
+    const d = await api({ module: 'proxy', action: 'eth_blockNumber' })
+    if (d && d.result) {
+      document.getElementById('blockNum').textContent = parseInt(d.result, 16).toLocaleString()
+      document.getElementById('blockTime').textContent = new Date().toLocaleTimeString('de-DE')
+    }
+  } catch(e) { console.error('block:', e) }
+}
+
+async function fetchBalance(address) {
+  try {
+    const d = await api({ module: 'account', action: 'balance', address })
+    return d && d.result ? (parseFloat(d.result)/1e18).toFixed(2) : '—'
+  } catch { return '—' }
+}
+
+async function fetchTxs(address) {
+  try {
+    const d = await api({ module: 'account', action: 'txlist', address, sort: 'desc', offset: '10', page: '1' })
+    return d && d.status === '1' ? d.result : []
+  } catch { return [] }
+}
+
+function renderWallets() {
+  const list = document.getElementById('walletList')
+  list.innerHTML = ''
+  document.getElementById('walletCount').textContent = WALLETS.length
+  WALLETS.forEach(w => {
+    const card = document.createElement('div')
+    card.className = 'wallet-card'
+    card.innerHTML = `
+      <div class="wallet-top">
+        <div>
+          <div style="margin-bottom:4px"><span class="wallet-id">${shortAddr(w.address)}</span></div>
+          <div class="wallet-label">${w.label}</div>
+        </div>
+        <div>
+          <div class="wallet-bal" id="bal-${w.address}">…</div>
+          <div class="wallet-bal-sub">ETH Balance</div>
+        </div>
+      </div>`
+    list.appendChild(card)
+    fetchBalance(w.address).then(bal => {
+      const el = document.getElementById('bal-' + w.address)
+      if (el) el.textContent = bal
+    })
+  })
+}
+
+function addRow(tx, label) {
+  const feed = document.getElementById('liveFeed')
+  const ph = feed.querySelector('.placeholder')
+  if (ph) feed.innerHTML = ''
+  const isIn = tx.to && WALLETS.some(w => w.address.toLowerCase() === tx.to.toLowerCase())
+  const row = document.createElement('div')
+  row.className = 'feed-row'
+  row.innerHTML = `
+    <span class="feed-time">${nowTime()}</span>
+    <span class="feed-wallet">${label}</span>
+    <span class="${isIn?'buy':'sell'}">${isIn?'▲ IN':'▼ OUT'}</span>
+    <span class="feed-token">ETH</span>
+    <span class="feed-value">${formatETH(tx.value)}</span>
+    <span class="feed-age">${timeAgo(tx.timeStamp)} ago</span>`
+  feed.insertBefore(row, feed.firstChild)
+  txTotal++
+  document.getElementById('txCount').textContent = txTotal
+  while (feed.children.length > 60) feed.removeChild(feed.lastChild)
+}
+
+async function poll() {
+  for (const w of WALLETS) {
+    const txs = await fetchTxs(w.address)
+    for (const tx of txs.slice(0,3)) {
+      if (!seenTxs.has(tx.hash) && tx.value !== '0') {
+        seenTxs.add(tx.hash)
+        addRow(tx, w.label)
+      }
+    }
+    await new Promise(r => setTimeout(r, 300))
+  }
+}
+
+renderWallets()
+fetchBlock()
+poll()
+setInterval(poll, 15000)
+setInterval(fetchBlock, 30000)
+</script>
 </body>
 </html>
