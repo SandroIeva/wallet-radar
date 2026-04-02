@@ -515,42 +515,87 @@ async function loadBalances() {
 }
 
 // ── TOKEN TRACKING ────────────────────────────────────────────────────────
+function fmtTokenAmount(value, decimals) {
+  try {
+    const d = parseInt(decimals) || 18
+    const num = Number(BigInt(value)) / Math.pow(10, d)
+    if (num >= 1e9) return (num/1e9).toFixed(2) + 'B'
+    if (num >= 1e6) return (num/1e6).toFixed(2) + 'M'
+    if (num >= 1e3) return (num/1e3).toFixed(2) + 'K'
+    if (num >= 1) return num.toFixed(2)
+    if (num > 0) return num.toFixed(6)
+    return '0'
+  } catch { return '?' }
+}
+
 async function loadTokens() {
   const list = document.getElementById('tokenList')
   list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
-  tokenData = {}
 
+  // Step 1: find all unique tokens across wallets via tokentx
+  const tokenMap = {} // contractAddress -> { name, symbol, decimals }
   for (const w of wallets) {
-    const d = await api({ module: 'account', action: 'tokentx', address: w.address, sort: 'desc', offset: '20', page: '1' })
-    if (!d || d.status !== '1') continue
+    const d = await api({ module: 'account', action: 'tokentx', address: w.address, sort: 'desc', offset: '50', page: '1' })
+    if (!d || d.status !== '1') { await sleep(300); continue }
     for (const tx of d.result) {
-      const key = tx.contractAddress
-      if (!tokenData[key]) {
-        tokenData[key] = { name: tx.tokenName, symbol: tx.tokenSymbol, decimals: parseInt(tx.tokenDecimal), transfers: 0 }
+      if (!tokenMap[tx.contractAddress]) {
+        tokenMap[tx.contractAddress] = { name: tx.tokenName, symbol: tx.tokenSymbol, decimals: tx.tokenDecimal }
       }
-      tokenData[key].transfers++
     }
     await sleep(300)
   }
 
-  const tokens = Object.values(tokenData).sort((a,b) => b.transfers - a.transfers).slice(0, 20)
-
-  if (!tokens.length) {
-    list.innerHTML = '<div class="feed-empty">Keine Token-Transfers gefunden</div>'
+  const contracts = Object.keys(tokenMap)
+  if (!contracts.length) {
+    list.innerHTML = '<div class="feed-empty">Keine Tokens gefunden</div>'
     return
   }
 
-  list.innerHTML = tokens.map(t => `
-    <div class="token-row">
-      <div class="token-icon">${t.symbol.slice(0,2)}</div>
-      <div>
-        <div class="token-name">${t.name}</div>
-        <div class="token-symbol">${t.symbol}</div>
+  // Step 2: for each wallet, get balance for each token
+  // Build: tokenMap[contract].holders = { walletLabel: balance }
+  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+
+  for (const contract of contracts.slice(0, 15)) {
+    tokenMap[contract].holders = {}
+    for (const w of wallets) {
+      const d = await api({ module: 'account', action: 'tokenbalance', contractaddress: contract, address: w.address, tag: 'latest' })
+      if (d && d.status === '1' && d.result && d.result !== '0') {
+        tokenMap[contract].holders[w.label] = d.result
+      }
+      await sleep(200)
+    }
+  }
+
+  // Step 3: render — show tokens that at least one wallet holds
+  const tokens = Object.entries(tokenMap)
+    .filter(([_, t]) => t.holders && Object.keys(t.holders).length > 0)
+    .slice(0, 20)
+
+  if (!tokens.length) {
+    list.innerHTML = '<div class="feed-empty">Keine aktuellen Token-Holdings gefunden</div>'
+    return
+  }
+
+  list.innerHTML = tokens.map(([contract, t]) => {
+    const holderRows = Object.entries(t.holders).map(([label, bal]) =>
+      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${label}</span>
+        <span style="font-size:11px;font-family:var(--mono);font-weight:500">${fmtTokenAmount(bal, t.decimals)} ${t.symbol}</span>
+      </div>`
+    ).join('')
+
+    return `
+    <div class="token-row" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="token-icon">${(t.symbol||'?').slice(0,2)}</div>
+        <div style="flex:1">
+          <div class="token-name">${t.name}</div>
+          <div class="token-symbol">${t.symbol} · ${Object.keys(t.holders).length} Wallets</div>
+        </div>
       </div>
-      <div class="token-bal">${t.transfers} Transfers</div>
-      <div class="token-val">ERC-20</div>
-    </div>
-  `).join('')
+      <div style="padding-left:42px">${holderRows}</div>
+    </div>`
+  }).join('')
 }
 
 // ── PNL ───────────────────────────────────────────────────────────────────

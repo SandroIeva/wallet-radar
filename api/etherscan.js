@@ -5,6 +5,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.ETHERSCAN_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'No API key' })
 
+  // Pass all query params through, just add chainid and apikey
   const query = { ...req.query, chainid: '1', apikey: apiKey }
   delete query._t
 
