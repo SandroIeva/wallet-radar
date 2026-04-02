@@ -195,7 +195,7 @@ function renderWallets() {
   const list = document.getElementById('walletList')
   list.innerHTML = ''
   document.getElementById('walletCount').textContent = WALLETS.length
-  WALLETS.forEach(w => {
+  WALLETS.forEach((w, i) => {
     const card = document.createElement('div')
     card.className = 'wallet-card'
     card.innerHTML = `
@@ -210,10 +210,12 @@ function renderWallets() {
         </div>
       </div>`
     list.appendChild(card)
-    fetchBalance(w.address).then(bal => {
-      const el = document.getElementById('bal-' + w.address)
-      if (el) el.textContent = bal
-    })
+    setTimeout(() => {
+      fetchBalance(w.address).then(bal => {
+        const el = document.getElementById('bal-' + w.address)
+        if (el) el.textContent = bal
+      })
+    }, i * 400)
   })
 }
 
