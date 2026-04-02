@@ -176,7 +176,11 @@ async function fetchBlock() {
 async function fetchBalance(address) {
   try {
     const d = await api({ module: 'account', action: 'balance', address })
-    return d && d.result ? (parseFloat(d.result)/1e18).toFixed(2) : '—'
+    if (!d || !d.result) return '—'
+    // Use BigInt to handle large wei values accurately
+    const wei = BigInt(d.result)
+    const eth = Number(wei) / 1e18
+    return eth.toFixed(2)
   } catch { return '—' }
 }
 

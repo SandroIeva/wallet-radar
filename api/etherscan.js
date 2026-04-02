@@ -19,7 +19,6 @@ export default async function handler(req, res) {
   })
 
   try {
-    // V2 API endpoint
     const r = await fetch(`https://api.etherscan.io/v2/api?${params}`)
     const d = await r.json()
     res.status(200).json(d)
