@@ -1,22 +1,19 @@
-# Wallet Radar
+# Wallet Radar v3
 
-Ethereum Wallet Tracker — Live On-Chain Daten via Etherscan API.
+Ethereum Wallet Tracker mit Alerts, Token-Tracking und PnL.
+
+## Features
+- Live Transaktions-Feed
+- Browser-Alerts bei großen Transaktionen
+- Token-Tracking (ERC-20)
+- PnL & Gewinn/Verlust pro Wallet
+- Wallets hinzufügen/entfernen ohne Code (gespeichert im Browser)
 
 ## Setup auf Vercel
 
 1. Repo auf GitHub pushen
 2. Auf vercel.com importieren
-3. Environment Variable setzen: `ETHERSCAN_API_KEY` = dein Key
-4. Deploy — fertig.
-
-## Wallets anpassen
-
-Öffne `index.html` und bearbeite das `WALLETS` Array:
-
-```js
-const WALLETS = [
-  { address: '0x...', label: 'Mein Wallet' },
-]
-```
+3. Environment Variable: `ETHERSCAN_API_KEY` = dein Key
+4. Deploy
 
 Built by [sandroieva.com](https://sandroieva.com)

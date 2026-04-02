@@ -5,19 +5,10 @@ export default async function handler(req, res) {
   const apiKey = process.env.ETHERSCAN_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'No API key' })
 
-  const { module, action, address, sort, offset, page, tag } = req.query
+  const query = { ...req.query, chainid: '1', apikey: apiKey }
+  delete query._t
 
-  const params = new URLSearchParams({
-    chainid: '1',
-    module, action, apikey: apiKey,
-    ...(address && { address }),
-    ...(sort && { sort }),
-    ...(offset && { offset }),
-    ...(page && { page }),
-    ...(tag && { tag }),
-    startblock: '0',
-    endblock: '99999999',
-  })
+  const params = new URLSearchParams(query)
 
   try {
     const r = await fetch(`https://api.etherscan.io/v2/api?${params}`)

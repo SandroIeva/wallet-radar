@@ -1,277 +1,652 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Wallet Radar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #f5f4f0; color: #1a1a1a; font-family: 'DM Sans', sans-serif; min-height: 100vh; }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-  @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  header {
-    border-bottom: 1px solid #e8e6e0;
-    padding: 20px 40px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0;
-    background: rgba(245,244,240,0.95);
-    backdrop-filter: blur(12px);
-    z-index: 100;
-  }
-  .header-title { font-weight: 800; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
-  .live-badge { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e8e6e0; padding: 5px 12px; border-radius: 20px; }
-  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; animation: pulse 2s infinite; }
-  .live-label { font-size: 11px; color: #888; letter-spacing: 1px; }
+:root {
+  --bg: #f7f6f2;
+  --surface: #ffffff;
+  --border: #e8e4dc;
+  --border2: #d4cfc4;
+  --text: #1a1814;
+  --muted: #9b9488;
+  --green: #1a7a4a;
+  --green-bg: #edf7f2;
+  --red: #c0392b;
+  --red-bg: #fdf0ee;
+  --accent: #1a1814;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
 
-  main { padding: 36px 40px; max-width: 1200px; margin: 0 auto; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-  .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 32px; }
-  .stat-box { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; padding: 20px 24px; }
-  .stat-label { font-size: 11px; color: #999; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  .stat-value { font-size: 26px; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #1a1a1a; }
-  .stat-sub { font-size: 11px; color: #bbb; margin-top: 6px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+@keyframes spin { to{transform:rotate(360deg)} }
 
-  .two-col { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
-  .section-label { font-size: 11px; color: #bbb; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+/* ── HEADER ── */
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(247,246,242,0.96);
+  backdrop-filter: blur(16px);
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+h1 { font-size: 14px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
+.live-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 20px; font-size: 10px;
+  font-family: var(--mono); color: var(--muted); letter-spacing: 1px;
+}
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+.alert-toggle {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-family: var(--mono); color: var(--muted);
+  cursor: pointer; padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface);
+  transition: all 0.2s;
+}
+.alert-toggle:hover { border-color: var(--border2); }
+.alert-toggle.active { border-color: var(--green); color: var(--green); background: var(--green-bg); }
 
-  .wallets-grid { display: flex; flex-direction: column; gap: 8px; }
-  .wallet-card { background: #fff; border: 1px solid #e8e6e0; border-radius: 10px; padding: 14px 18px; transition: border-color 0.2s, box-shadow 0.2s; }
-  .wallet-card:hover { border-color: #bbf7d0; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
-  .wallet-top { display: flex; justify-content: space-between; align-items: flex-start; }
-  .wallet-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #16a34a; background: #f0fdf4; padding: 2px 7px; border-radius: 4px; }
-  .wallet-label { font-size: 12px; color: #999; margin-top: 4px; }
-  .wallet-bal { font-size: 15px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #1a1a1a; }
-  .wallet-bal-sub { font-size: 10px; color: #ccc; text-align: right; margin-top: 2px; }
+/* ── LAYOUT ── */
+main { max-width: 1280px; margin: 0 auto; padding: 28px 36px 60px; }
 
-  .feed-wrapper { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; height: 460px; overflow-y: auto; }
-  .feed-row { display: flex; gap: 10px; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 10px 16px; border-bottom: 1px solid #f5f4f0; animation: slideIn 0.3s ease; }
-  .feed-row:last-child { border-bottom: none; }
-  .feed-time { color: #ccc; flex-shrink: 0; }
-  .feed-wallet { color: #bbb; flex-shrink: 0; font-size: 10px; }
-  .feed-token { color: #1a1a1a; flex-shrink: 0; font-weight: 700; }
-  .feed-value { color: #1a1a1a; margin-left: auto; flex-shrink: 0; }
-  .feed-age { font-size: 10px; color: #ddd; margin-left: 8px; flex-shrink: 0; }
-  .buy { color: #16a34a; }
-  .sell { color: #dc2626; }
-  .placeholder { color: #ccc; font-size: 12px; padding: 24px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+/* ── STATS ── */
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 24px; }
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 20px;
+}
+.stat-label { font-size: 10px; font-family: var(--mono); color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.stat-value { font-size: 22px; font-weight: 800; line-height: 1; font-family: var(--mono); }
+.stat-sub { font-size: 10px; color: var(--muted); margin-top: 5px; font-family: var(--mono); }
+.green { color: var(--green); }
+.red { color: var(--red); }
 
-  .divider { height: 1px; background: #e8e6e0; margin: 32px 0; }
-  footer { display: flex; justify-content: space-between; padding-bottom: 40px; }
-  footer span { font-size: 10px; color: #ccc; font-family: 'JetBrains Mono', monospace; }
+/* ── GRID ── */
+.grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
 
-  @media (max-width: 768px) {
-    header { padding: 16px 20px; }
-    main { padding: 24px 20px; }
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-    .two-col { grid-template-columns: 1fr; }
-    .feed-wrapper { height: 320px; }
-  }
+/* ── WALLET PANEL ── */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.panel-header {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-title { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+.add-btn {
+  font-size: 11px; font-family: var(--mono); cursor: pointer;
+  background: var(--text); color: white; border: none;
+  padding: 4px 10px; border-radius: 6px; transition: opacity 0.2s;
+}
+.add-btn:hover { opacity: 0.8; }
+
+.wallet-item {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+  animation: fadeIn 0.3s ease;
+  transition: background 0.15s;
+}
+.wallet-item:last-child { border-bottom: none; }
+.wallet-item:hover { background: var(--bg); }
+.wallet-row1 { display: flex; align-items: center; justify-content: space-between; }
+.wallet-addr { font-family: var(--mono); font-size: 11px; color: var(--green); }
+.wallet-name { font-size: 12px; font-weight: 600; }
+.wallet-bal { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.wallet-row2 { display: flex; align-items: center; justify-content: space-between; }
+.wallet-pnl { font-family: var(--mono); font-size: 11px; }
+.remove-btn {
+  font-size: 10px; color: var(--muted); background: none; border: none;
+  cursor: pointer; padding: 2px 6px; border-radius: 4px;
+  transition: all 0.15s;
+}
+.remove-btn:hover { background: var(--red-bg); color: var(--red); }
+
+/* ── ADD WALLET FORM ── */
+.add-form {
+  padding: 14px 18px; border-top: 1px solid var(--border);
+  display: none; flex-direction: column; gap: 8px;
+  background: var(--bg);
+}
+.add-form.open { display: flex; }
+.add-form input {
+  font-family: var(--mono); font-size: 11px;
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 10px; background: var(--surface);
+  outline: none; transition: border-color 0.2s;
+}
+.add-form input:focus { border-color: var(--border2); }
+.add-form-btns { display: flex; gap: 6px; }
+.btn-confirm {
+  flex: 1; font-family: var(--mono); font-size: 11px;
+  background: var(--text); color: white; border: none;
+  padding: 7px; border-radius: 6px; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-confirm:hover { opacity: 0.8; }
+.btn-cancel {
+  font-family: var(--mono); font-size: 11px;
+  background: none; color: var(--muted); border: 1px solid var(--border);
+  padding: 7px 12px; border-radius: 6px; cursor: pointer;
+}
+
+/* ── RIGHT PANEL ── */
+.right-col { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 18px; }
+.tab {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px;
+  padding: 10px 14px; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all 0.15s; text-transform: uppercase;
+}
+.tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+/* ── FEED ── */
+.feed { max-height: 420px; overflow-y: auto; }
+.feed-row {
+  display: grid; grid-template-columns: 60px 90px 50px 80px 1fr auto;
+  align-items: center; gap: 10px;
+  padding: 9px 18px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px;
+  animation: fadeIn 0.3s ease;
+}
+.feed-row:last-child { border-bottom: none; }
+.f-time { color: var(--muted); }
+.f-wallet { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-dir.buy { color: var(--green); }
+.f-dir.sell { color: var(--red); }
+.f-token { font-weight: 500; }
+.f-value { color: var(--text); font-weight: 500; justify-self: end; }
+.f-age { color: var(--muted); font-size: 10px; }
+.feed-empty { padding: 40px 18px; text-align: center; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+/* ── TOKENS TAB ── */
+.token-list { max-height: 420px; overflow-y: auto; }
+.token-row {
+  display: grid; grid-template-columns: 40px 1fr auto auto;
+  align-items: center; gap: 12px;
+  padding: 10px 18px; border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.3s ease;
+}
+.token-row:last-child { border-bottom: none; }
+.token-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; font-family: var(--mono);
+  color: var(--muted);
+}
+.token-name { font-weight: 600; font-size: 13px; }
+.token-symbol { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.token-bal { font-family: var(--mono); font-size: 12px; text-align: right; }
+.token-val { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; }
+
+/* ── PNL TAB ── */
+.pnl-list { max-height: 420px; overflow-y: auto; }
+.pnl-row {
+  display: grid; grid-template-columns: 1fr auto auto auto;
+  align-items: center; gap: 16px;
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+}
+.pnl-row:last-child { border-bottom: none; }
+.pnl-name { font-weight: 600; font-size: 13px; }
+.pnl-addr { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+.pnl-txcount { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.pnl-vol { font-family: var(--mono); font-size: 11px; }
+.pnl-val { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.positive { color: var(--green); }
+.negative { color: var(--red); }
+
+/* ── ALERT TOAST ── */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--text); color: white;
+  padding: 12px 16px; border-radius: 10px;
+  font-family: var(--mono); font-size: 11px;
+  max-width: 300px; animation: fadeIn 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.toast-title { font-weight: 700; margin-bottom: 3px; }
+.toast-body { color: rgba(255,255,255,0.7); }
+
+/* ── LOADING ── */
+.loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+@media (max-width: 900px) {
+  header { padding: 14px 20px; }
+  main { padding: 20px; }
+  .stats { grid-template-columns: repeat(2,1fr); }
+  .grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
 <header>
-  <span class="header-title">Wallet Radar</span>
-  <div class="live-badge">
-    <div class="live-dot"></div>
-    <span class="live-label">LIVE</span>
+  <div class="header-left">
+    <h1>Wallet Radar</h1>
+    <div class="live-pill"><div class="dot"></div>LIVE</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div class="alert-toggle" id="alertToggle" onclick="toggleAlerts()">🔔 Alerts aus</div>
   </div>
 </header>
 
 <main>
-  <div class="stats-grid">
-    <div class="stat-box">
-      <div class="stat-label">Wallets Tracked</div>
-      <div class="stat-value" id="walletCount">—</div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Wallets</div>
+      <div class="stat-value" id="statWallets">0</div>
       <div class="stat-sub">Ethereum Mainnet</div>
     </div>
-    <div class="stat-box">
+    <div class="stat">
       <div class="stat-label">Transaktionen</div>
-      <div class="stat-value" id="txCount">0</div>
+      <div class="stat-value" id="statTx">0</div>
       <div class="stat-sub">seit Seitenaufruf</div>
     </div>
-    <div class="stat-box">
+    <div class="stat">
+      <div class="stat-label">Gesamtvolumen</div>
+      <div class="stat-value" id="statVol">0</div>
+      <div class="stat-sub">ETH heute</div>
+    </div>
+    <div class="stat">
       <div class="stat-label">Letzter Block</div>
-      <div class="stat-value" id="blockNum">—</div>
-      <div class="stat-sub" id="blockTime">—</div>
+      <div class="stat-value" id="statBlock">—</div>
+      <div class="stat-sub" id="statBlockTime">—</div>
     </div>
   </div>
 
-  <div class="two-col">
+  <div class="grid">
+    <!-- Wallet List -->
     <div>
-      <div class="section-label">Wallets</div>
-      <div class="wallets-grid" id="walletList">
-        <div class="placeholder">Lade…</div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Tracked Wallets</span>
+          <button class="add-btn" onclick="toggleForm()">+ Hinzufügen</button>
+        </div>
+        <div id="walletList"><div class="loading"><div class="spinner"></div></div></div>
+        <div class="add-form" id="addForm">
+          <input id="inputAddr" placeholder="0x... Wallet-Adresse" />
+          <input id="inputName" placeholder="Label (z.B. Vitalik)" />
+          <div class="add-form-btns">
+            <button class="btn-confirm" onclick="addWallet()">Speichern</button>
+            <button class="btn-cancel" onclick="toggleForm()">Abbrechen</button>
+          </div>
+        </div>
       </div>
     </div>
-    <div>
-      <div class="section-label">
-        <span>Transaktionen</span>
-        <div class="live-dot"></div>
-      </div>
-      <div class="feed-wrapper" id="liveFeed">
-        <div class="placeholder">Warte auf Transaktionen…</div>
+
+    <!-- Right Panel -->
+    <div class="right-col">
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('feed',this)">Live Feed</div>
+          <div class="tab" onclick="switchTab('tokens',this)">Tokens</div>
+          <div class="tab" onclick="switchTab('pnl',this)">PnL</div>
+        </div>
+
+        <div id="tabFeed">
+          <div class="feed" id="liveFeed">
+            <div class="feed-empty">Warte auf Transaktionen…</div>
+          </div>
+        </div>
+
+        <div id="tabTokens" style="display:none">
+          <div class="token-list" id="tokenList">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <div id="tabPnl" style="display:none">
+          <div class="pnl-list" id="pnlList">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-
-  <div class="divider"></div>
-  <footer>
-    <span>ETHEREUM ON-CHAIN DATEN · ETHERSCAN API</span>
-    <span>sandroieva.com</span>
-  </footer>
 </main>
 
+<div class="toast-container" id="toastContainer"></div>
+
 <script>
-const WALLETS = [
+// ── STATE ──────────────────────────────────────────────────────────────────
+const DEFAULT_WALLETS = [
   { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label: 'vitalik.eth' },
   { address: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', label: 'Binance Whale' },
   { address: '0x28C6c06298d514Db089934071355E5743bf21d60', label: 'Binance Hot' },
-  { address: '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', label: 'Binance Cold' },
-  { address: '0xF977814e90dA44bFA03b6295A0616a897441aceC', label: 'Binance 8' },
 ]
 
-const seenTxs = new Set()
+let wallets = JSON.parse(localStorage.getItem('wr_wallets') || 'null') || DEFAULT_WALLETS
+let alertsEnabled = false
+let seenTxs = new Set()
 let txTotal = 0
+let totalVolume = 0
+let pnlData = {}
+let tokenData = {}
+let currentTab = 'feed'
 
-function shortAddr(a) { return a.slice(0,6) + '…' + a.slice(-4) }
-function formatETH(wei) {
-  const e = parseFloat(wei) / 1e18
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const shortAddr = a => a.slice(0,6) + '…' + a.slice(-4)
+const fmtETH = wei => {
+  const e = Number(BigInt(String(wei))) / 1e18
   if (e >= 1000) return e.toFixed(0) + ' ETH'
   if (e >= 1) return e.toFixed(3) + ' ETH'
-  return e.toFixed(6) + ' ETH'
+  if (e > 0) return e.toFixed(6) + ' ETH'
+  return '0 ETH'
 }
-function timeAgo(ts) {
+const fmtNum = n => {
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M'
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K'
+  return n.toFixed(2)
+}
+const timeAgo = ts => {
   const d = Date.now()/1000 - parseInt(ts)
   if (d < 60) return Math.floor(d) + 's'
   if (d < 3600) return Math.floor(d/60) + 'm'
   return Math.floor(d/3600) + 'h'
 }
-function nowTime() {
-  const d = new Date()
-  return [d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':')
-}
+const nowTime = () => new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit',second:'2-digit'})
+const saveWallets = () => localStorage.setItem('wr_wallets', JSON.stringify(wallets))
 
+// ── API ────────────────────────────────────────────────────────────────────
 async function api(params) {
   const p = new URLSearchParams({ ...params, _t: Date.now() })
-  const r = await fetch('/api/etherscan?' + p)
-  return r.json()
+  try {
+    const r = await fetch('/api/etherscan?' + p)
+    return await r.json()
+  } catch { return null }
 }
 
-async function fetchBlock() {
-  try {
-    const d = await api({ module: 'proxy', action: 'eth_blockNumber' })
-    if (d && d.result) {
-      document.getElementById('blockNum').textContent = parseInt(d.result, 16).toLocaleString()
-      document.getElementById('blockTime').textContent = new Date().toLocaleTimeString('de-DE')
+// ── ALERTS ────────────────────────────────────────────────────────────────
+async function toggleAlerts() {
+  if (!alertsEnabled) {
+    const perm = await Notification.requestPermission()
+    if (perm === 'granted') {
+      alertsEnabled = true
+      document.getElementById('alertToggle').classList.add('active')
+      document.getElementById('alertToggle').textContent = '🔔 Alerts an'
+      showToast('Alerts aktiviert', 'Du wirst bei neuen Transaktionen benachrichtigt')
     }
-  } catch(e) { console.error('block:', e) }
+  } else {
+    alertsEnabled = false
+    document.getElementById('alertToggle').classList.remove('active')
+    document.getElementById('alertToggle').textContent = '🔔 Alerts aus'
+  }
 }
 
-async function fetchAllBalances() {
-  try {
-    const addresses = WALLETS.map(w => w.address).join(",")
-    const d = await api({ module: "account", action: "balancemulti", address: addresses, tag: "latest" })
-    if (!d || d.status !== "1") return {}
-    const map = {}
-    for (const item of d.result) {
-      const eth = Number(BigInt(item.balance)) / 1e18
-      map[item.account.toLowerCase()] = eth.toFixed(2)
-    }
-    return map
-  } catch { return {} }
+function fireAlert(wallet, type, amount, token) {
+  if (!alertsEnabled) return
+  const eth = Number(BigInt(String(amount))) / 1e18
+  if (eth < 0.1) return // Nur große Transaktionen
+  const title = `${wallet} — ${type === 'in' ? '📥' : '📤'} ${token}`
+  const body = `${eth.toFixed(3)} ${token}`
+  new Notification(title, { body, icon: '/favicon.ico' })
+  showToast(title, body)
 }
 
-async function fetchBalance(address) {
-  try {
-    const d = await api({ module: 'account', action: 'balance', address })
-    if (!d || !d.result) return '—'
-    // Use BigInt to handle large wei values accurately
-    const wei = BigInt(d.result)
-    const eth = Number(wei) / 1e18
-    return eth.toFixed(2)
-  } catch { return '—' }
+function showToast(title, body) {
+  const c = document.getElementById('toastContainer')
+  const t = document.createElement('div')
+  t.className = 'toast'
+  t.innerHTML = `<div class="toast-title">${title}</div><div class="toast-body">${body}</div>`
+  c.appendChild(t)
+  setTimeout(() => t.remove(), 5000)
 }
 
-async function fetchTxs(address) {
-  try {
-    const d = await api({ module: 'account', action: 'txlist', address, sort: 'desc', offset: '10', page: '1' })
-    return d && d.status === '1' ? d.result : []
-  } catch { return [] }
+// ── WALLET UI ─────────────────────────────────────────────────────────────
+function toggleForm() {
+  document.getElementById('addForm').classList.toggle('open')
+  document.getElementById('inputAddr').focus()
+}
+
+async function addWallet() {
+  const addr = document.getElementById('inputAddr').value.trim()
+  const label = document.getElementById('inputName').value.trim()
+  if (!addr.startsWith('0x') || addr.length !== 42) {
+    showToast('⚠ Ungültige Adresse', 'Bitte eine gültige Ethereum-Adresse eingeben')
+    return
+  }
+  if (wallets.find(w => w.address.toLowerCase() === addr.toLowerCase())) {
+    showToast('⚠ Bereits vorhanden', 'Diese Wallet wird bereits getrackt')
+    return
+  }
+  wallets.push({ address: addr, label: label || shortAddr(addr) })
+  saveWallets()
+  document.getElementById('inputAddr').value = ''
+  document.getElementById('inputName').value = ''
+  toggleForm()
+  renderWallets()
+  loadBalances()
+  showToast('✓ Wallet hinzugefügt', label || shortAddr(addr))
+}
+
+function removeWallet(addr) {
+  wallets = wallets.filter(w => w.address !== addr)
+  saveWallets()
+  renderWallets()
+  loadBalances()
 }
 
 function renderWallets() {
   const list = document.getElementById('walletList')
-  list.innerHTML = ''
-  document.getElementById('walletCount').textContent = WALLETS.length
-  WALLETS.forEach(w => {
-    const card = document.createElement('div')
-    card.className = 'wallet-card'
-    card.innerHTML = `
-      <div class="wallet-top">
+  document.getElementById('statWallets').textContent = wallets.length
+  if (!wallets.length) {
+    list.innerHTML = '<div class="feed-empty">Keine Wallets. Füge eine hinzu!</div>'
+    return
+  }
+  list.innerHTML = wallets.map(w => `
+    <div class="wallet-item">
+      <div class="wallet-row1">
         <div>
-          <div style="margin-bottom:4px"><span class="wallet-id">${shortAddr(w.address)}</span></div>
-          <div class="wallet-label">${w.label}</div>
+          <div class="wallet-addr">${shortAddr(w.address)}</div>
+          <div class="wallet-name">${w.label}</div>
         </div>
-        <div>
+        <div style="text-align:right">
           <div class="wallet-bal" id="bal-${w.address}">…</div>
-          <div class="wallet-bal-sub">ETH Balance</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted)">ETH</div>
         </div>
-      </div>`
-    list.appendChild(card)
-  })
-  // One single API call for all balances
-  fetchAllBalances().then(map => {
-    WALLETS.forEach(w => {
-      const el = document.getElementById('bal-' + w.address)
-      if (el) el.textContent = map[w.address.toLowerCase()] || '—'
-    })
-  })
+      </div>
+      <div class="wallet-row2">
+        <div class="wallet-pnl" id="pnl-${w.address}">PnL wird geladen…</div>
+        <button class="remove-btn" onclick="removeWallet('${w.address}')">✕ entfernen</button>
+      </div>
+    </div>
+  `).join('')
 }
 
-function addRow(tx, label) {
-  const feed = document.getElementById('liveFeed')
-  const ph = feed.querySelector('.placeholder')
-  if (ph) feed.innerHTML = ''
-  const isIn = tx.to && WALLETS.some(w => w.address.toLowerCase() === tx.to.toLowerCase())
-  const row = document.createElement('div')
-  row.className = 'feed-row'
-  row.innerHTML = `
-    <span class="feed-time">${nowTime()}</span>
-    <span class="feed-wallet">${label}</span>
-    <span class="${isIn?'buy':'sell'}">${isIn?'▲ IN':'▼ OUT'}</span>
-    <span class="feed-token">ETH</span>
-    <span class="feed-value">${formatETH(tx.value)}</span>
-    <span class="feed-age">${timeAgo(tx.timeStamp)} ago</span>`
-  feed.insertBefore(row, feed.firstChild)
-  txTotal++
-  document.getElementById('txCount').textContent = txTotal
-  while (feed.children.length > 60) feed.removeChild(feed.lastChild)
-}
-
-async function poll() {
-  for (const w of WALLETS) {
-    const txs = await fetchTxs(w.address)
-    for (const tx of txs.slice(0,3)) {
-      if (!seenTxs.has(tx.hash) && tx.value !== '0') {
-        seenTxs.add(tx.hash)
-        addRow(tx, w.label)
-      }
+// ── BALANCES ──────────────────────────────────────────────────────────────
+async function loadBalances() {
+  if (!wallets.length) return
+  const addresses = wallets.map(w => w.address).join(',')
+  const d = await api({ module: 'account', action: 'balancemulti', address: addresses, tag: 'latest' })
+  if (!d || d.status !== '1') return
+  for (const item of d.result) {
+    const el = document.getElementById('bal-' + item.account)
+    if (el) {
+      const eth = Number(BigInt(item.balance)) / 1e18
+      el.textContent = eth.toFixed(3)
     }
-    await new Promise(r => setTimeout(r, 300))
   }
 }
 
-renderWallets()
-fetchBlock()
-poll()
-setInterval(poll, 15000)
-setInterval(fetchBlock, 30000)
+// ── TOKEN TRACKING ────────────────────────────────────────────────────────
+async function loadTokens() {
+  const list = document.getElementById('tokenList')
+  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  tokenData = {}
+
+  for (const w of wallets) {
+    const d = await api({ module: 'account', action: 'tokentx', address: w.address, sort: 'desc', offset: '20', page: '1' })
+    if (!d || d.status !== '1') continue
+    for (const tx of d.result) {
+      const key = tx.contractAddress
+      if (!tokenData[key]) {
+        tokenData[key] = { name: tx.tokenName, symbol: tx.tokenSymbol, decimals: parseInt(tx.tokenDecimal), transfers: 0 }
+      }
+      tokenData[key].transfers++
+    }
+    await sleep(300)
+  }
+
+  const tokens = Object.values(tokenData).sort((a,b) => b.transfers - a.transfers).slice(0, 20)
+
+  if (!tokens.length) {
+    list.innerHTML = '<div class="feed-empty">Keine Token-Transfers gefunden</div>'
+    return
+  }
+
+  list.innerHTML = tokens.map(t => `
+    <div class="token-row">
+      <div class="token-icon">${t.symbol.slice(0,2)}</div>
+      <div>
+        <div class="token-name">${t.name}</div>
+        <div class="token-symbol">${t.symbol}</div>
+      </div>
+      <div class="token-bal">${t.transfers} Transfers</div>
+      <div class="token-val">ERC-20</div>
+    </div>
+  `).join('')
+}
+
+// ── PNL ───────────────────────────────────────────────────────────────────
+async function loadPnl() {
+  const list = document.getElementById('pnlList')
+  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+
+  const results = []
+  for (const w of wallets) {
+    const d = await api({ module: 'account', action: 'txlist', address: w.address, sort: 'desc', offset: '50', page: '1' })
+    if (!d || d.status !== '1') { results.push({ ...w, txCount: 0, volume: 0, pnl: 0 }); continue }
+
+    let inFlow = 0, outFlow = 0, txCount = d.result.length
+    for (const tx of d.result) {
+      const eth = Number(BigInt(tx.value)) / 1e18
+      const fee = (Number(BigInt(tx.gasUsed || '21000')) * Number(BigInt(tx.gasPrice || '0'))) / 1e18
+      if (tx.to.toLowerCase() === w.address.toLowerCase()) inFlow += eth
+      else { outFlow += eth; outFlow += fee }
+    }
+    const pnl = inFlow - outFlow
+    const volume = inFlow + outFlow
+    results.push({ ...w, txCount, volume, pnl, inFlow, outFlow })
+
+    // Update PnL in sidebar
+    const el = document.getElementById('pnl-' + w.address)
+    if (el) {
+      const sign = pnl >= 0 ? '+' : ''
+      el.innerHTML = `<span class="${pnl >= 0 ? 'positive' : 'negative'}">${sign}${pnl.toFixed(3)} ETH</span>`
+    }
+    await sleep(300)
+  }
+
+  list.innerHTML = results.map(r => `
+    <div class="pnl-row">
+      <div>
+        <div class="pnl-name">${r.label}</div>
+        <div class="pnl-addr">${shortAddr(r.address)}</div>
+      </div>
+      <div class="pnl-txcount">${r.txCount} Txs</div>
+      <div class="pnl-vol">${r.volume.toFixed(2)} ETH</div>
+      <div class="pnl-val ${r.pnl >= 0 ? 'positive' : 'negative'}">${r.pnl >= 0 ? '+' : ''}${r.pnl.toFixed(3)} ETH</div>
+    </div>
+  `).join('')
+}
+
+// ── LIVE FEED ─────────────────────────────────────────────────────────────
+function addFeedRow(tx, walletLabel, walletAddr) {
+  const feed = document.getElementById('liveFeed')
+  const empty = feed.querySelector('.feed-empty')
+  if (empty) feed.innerHTML = ''
+
+  const isIn = tx.to && tx.to.toLowerCase() === walletAddr.toLowerCase()
+  const eth = Number(BigInt(tx.value || '0')) / 1e18
+  const token = tx.tokenSymbol || 'ETH'
+
+  const row = document.createElement('div')
+  row.className = 'feed-row'
+  row.innerHTML = `
+    <span class="f-time">${nowTime()}</span>
+    <span class="f-wallet">${walletLabel}</span>
+    <span class="f-dir ${isIn ? 'buy' : 'sell'}">${isIn ? '▲ IN' : '▼ OUT'}</span>
+    <span class="f-token">${token}</span>
+    <span class="f-value">${eth > 0 ? eth.toFixed(4) + ' ' + token : '—'}</span>
+    <span class="f-age">${timeAgo(tx.timeStamp)}</span>
+  `
+  feed.insertBefore(row, feed.firstChild)
+
+  txTotal++
+  totalVolume += eth
+  document.getElementById('statTx').textContent = txTotal
+  document.getElementById('statVol').textContent = fmtNum(totalVolume)
+  while (feed.children.length > 80) feed.removeChild(feed.lastChild)
+
+  fireAlert(walletLabel, isIn ? 'in' : 'out', tx.value || '0', token)
+}
+
+async function pollFeed() {
+  for (const w of wallets) {
+    const d = await api({ module: 'account', action: 'txlist', address: w.address, sort: 'desc', offset: '5', page: '1' })
+    if (d && d.status === '1') {
+      for (const tx of d.result.slice(0, 3)) {
+        if (!seenTxs.has(tx.hash) && tx.value !== '0') {
+          seenTxs.add(tx.hash)
+          addFeedRow(tx, w.label, w.address)
+        }
+      }
+    }
+    await sleep(300)
+  }
+}
+
+// ── BLOCK ─────────────────────────────────────────────────────────────────
+async function updateBlock() {
+  const d = await api({ module: 'proxy', action: 'eth_blockNumber' })
+  if (d && d.result) {
+    document.getElementById('statBlock').textContent = parseInt(d.result, 16).toLocaleString('de-DE')
+    document.getElementById('statBlockTime').textContent = nowTime()
+  }
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  document.getElementById('tabFeed').style.display = name === 'feed' ? '' : 'none'
+  document.getElementById('tabTokens').style.display = name === 'tokens' ? '' : 'none'
+  document.getElementById('tabPnl').style.display = name === 'pnl' ? '' : 'none'
+  currentTab = name
+  if (name === 'tokens') loadTokens()
+  if (name === 'pnl') loadPnl()
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init() {
+  renderWallets()
+  await Promise.all([loadBalances(), updateBlock(), pollFeed()])
+  setInterval(pollFeed, 15000)
+  setInterval(updateBlock, 30000)
+  setInterval(loadBalances, 60000)
+}
+
+init()
 </script>
 </body>
 </html>
