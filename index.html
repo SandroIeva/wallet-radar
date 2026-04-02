@@ -233,6 +233,31 @@ main { max-width: 1280px; margin: 0 auto; padding: 28px 36px 60px; }
   .stats { grid-template-columns: repeat(2,1fr); }
   .grid { grid-template-columns: 1fr; }
 }
+
+/* ── SYNC BAR ── */
+.sync-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 18px; border-bottom: 1px solid var(--border);
+  background: var(--bg); font-family: var(--mono); font-size: 10px; color: var(--muted);
+}
+.sync-progress-track {
+  flex: 1; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden;
+}
+.sync-progress-fill {
+  height: 100%; background: var(--green); border-radius: 1px;
+  transition: width 1s linear;
+}
+.sync-status { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.sync-btn {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  padding: 2px 8px; cursor: pointer; font-family: var(--mono); font-size: 10px;
+  color: var(--muted); transition: all 0.15s; flex-shrink: 0;
+}
+.sync-btn:hover { border-color: var(--border2); color: var(--text); }
+.sync-btn.paused { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.syncing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 1s infinite; flex-shrink: 0; }
+.syncing-dot.idle { background: var(--muted); animation: none; }
+
 </style>
 </head>
 <body>
@@ -303,6 +328,17 @@ main { max-width: 1280px; margin: 0 auto; padding: 28px 36px 60px; }
           <div class="tab" onclick="switchTab('pnl',this)">PnL</div>
         </div>
 
+        <div class="sync-bar" id="syncBar">
+          <div class="sync-status">
+            <div class="syncing-dot idle" id="syncDot"></div>
+            <span id="syncLabel">Bereit</span>
+          </div>
+          <div class="sync-progress-track">
+            <div class="sync-progress-fill" id="syncFill" style="width:100%"></div>
+          </div>
+          <button class="sync-btn" id="syncNowBtn" onclick="syncNow()">↻ Jetzt</button>
+          <button class="sync-btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+        </div>
         <div id="tabFeed">
           <div class="feed" id="liveFeed">
             <div class="feed-empty">Warte auf Transaktionen…</div>
@@ -711,13 +747,109 @@ function switchTab(name, el) {
 // ── HELPERS ───────────────────────────────────────────────────────────────
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
+// ── SMART SYNC SYSTEM ─────────────────────────────────────────────────────
+const POLL_INTERVAL = 15  // seconds between feed polls
+const BALANCE_INTERVAL = 60
+const BLOCK_INTERVAL = 30
+
+let syncPaused = false
+let syncCountdown = POLL_INTERVAL
+let countdownTimer = null
+let isSyncing = false
+
+function setSyncState(syncing, label) {
+  isSyncing = syncing
+  const dot = document.getElementById('syncDot')
+  const lbl = document.getElementById('syncLabel')
+  if (dot) dot.className = 'syncing-dot' + (syncing ? '' : ' idle')
+  if (lbl) lbl.textContent = label
+}
+
+function startCountdown(seconds, onDone) {
+  clearInterval(countdownTimer)
+  syncCountdown = seconds
+  const fill = document.getElementById('syncFill')
+  const lbl = document.getElementById('syncLabel')
+  if (fill) fill.style.width = '100%'
+
+  countdownTimer = setInterval(() => {
+    if (syncPaused) return
+    syncCountdown--
+    const pct = (syncCountdown / seconds) * 100
+    if (fill) fill.style.width = pct + '%'
+    if (lbl && !isSyncing) lbl.textContent = `Nächste Sync in ${syncCountdown}s`
+    if (syncCountdown <= 0) {
+      clearInterval(countdownTimer)
+      onDone()
+    }
+  }, 1000)
+}
+
+async function runSync() {
+  if (isSyncing) return
+  setSyncState(true, 'Synchronisiere Feed…')
+  await pollFeed()
+  setSyncState(false, 'Feed aktualisiert')
+  startCountdown(POLL_INTERVAL, runSync)
+}
+
+async function syncNow() {
+  if (isSyncing) return
+  clearInterval(countdownTimer)
+  setSyncState(true, 'Lade alle Daten…')
+  await Promise.all([pollFeed(), updateBlock(), loadBalances()])
+  setSyncState(false, 'Alles aktuell ✓')
+  startCountdown(POLL_INTERVAL, runSync)
+}
+
+function togglePause() {
+  syncPaused = !syncPaused
+  const btn = document.getElementById('pauseBtn')
+  const lbl = document.getElementById('syncLabel')
+  if (btn) {
+    btn.textContent = syncPaused ? '▶ Weiter' : '⏸ Pause'
+    btn.classList.toggle('paused', syncPaused)
+  }
+  if (lbl) lbl.textContent = syncPaused ? 'Pausiert' : `Nächste Sync in ${syncCountdown}s`
+}
+
+// Pause when tab is hidden, resume when visible
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    syncPaused = true
+  } else {
+    syncPaused = false
+    // If overdue, sync immediately
+    if (syncCountdown <= 0) syncNow()
+  }
+})
+
+// Block counter ticks independently
+let blockInterval = null
+async function startBlockPolling() {
+  await updateBlock()
+  blockInterval = setInterval(() => {
+    if (!syncPaused) updateBlock()
+  }, BLOCK_INTERVAL * 1000)
+}
+
+// Balance refreshes every minute
+let balanceInterval = null
+async function startBalancePolling() {
+  balanceInterval = setInterval(() => {
+    if (!syncPaused) loadBalances()
+  }, BALANCE_INTERVAL * 1000)
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────
 async function init() {
   renderWallets()
+  setSyncState(true, 'Erste Synchronisation…')
   await Promise.all([loadBalances(), updateBlock(), pollFeed()])
-  setInterval(pollFeed, 15000)
-  setInterval(updateBlock, 30000)
-  setInterval(loadBalances, 60000)
+  setSyncState(false, 'Bereit')
+  startCountdown(POLL_INTERVAL, runSync)
+  startBlockPolling()
+  startBalancePolling()
 }
 
 init()
