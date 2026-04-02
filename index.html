@@ -557,9 +557,9 @@ function fmtTokenAmount(value, decimals) {
     const num = Number(BigInt(value)) / Math.pow(10, d)
     if (num >= 1e9) return (num/1e9).toFixed(2) + 'B'
     if (num >= 1e6) return (num/1e6).toFixed(2) + 'M'
-    if (num >= 1e3) return (num/1e3).toFixed(2) + 'K'
+    if (num >= 1e3) return (num/1e3).toFixed(1) + 'K'
     if (num >= 1) return num.toFixed(2)
-    if (num > 0) return num.toFixed(6)
+    if (num > 0) return num.toFixed(4)
     return '0'
   } catch { return '?' }
 }
@@ -568,71 +568,79 @@ async function loadTokens() {
   const list = document.getElementById('tokenList')
   list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
 
-  // Step 1: find all unique tokens across wallets via tokentx
-  const tokenMap = {} // contractAddress -> { name, symbol, decimals }
+  // For each wallet: fetch recent token transfers, compute net balance per token
+  // This avoids per-token balance calls and stays well within rate limits
+  const walletTokens = {} // walletAddr -> { contractAddr -> { name, symbol, decimals, netBalance } }
+
   for (const w of wallets) {
-    const d = await api({ module: 'account', action: 'tokentx', address: w.address, sort: 'desc', offset: '50', page: '1' })
-    if (!d || d.status !== '1') { await sleep(300); continue }
+    walletTokens[w.address] = {}
+    const d = await api({ module: 'account', action: 'tokentx', address: w.address, sort: 'desc', offset: '100', page: '1' })
+    if (!d || d.status !== '1') { await sleep(400); continue }
+
     for (const tx of d.result) {
-      if (!tokenMap[tx.contractAddress]) {
-        tokenMap[tx.contractAddress] = { name: tx.tokenName, symbol: tx.tokenSymbol, decimals: tx.tokenDecimal }
+      const c = tx.contractAddress
+      if (!walletTokens[w.address][c]) {
+        walletTokens[w.address][c] = {
+          name: tx.tokenName, symbol: tx.tokenSymbol,
+          decimals: parseInt(tx.tokenDecimal) || 18,
+          net: BigInt(0)
+        }
+      }
+      const val = BigInt(tx.value || '0')
+      if (tx.to.toLowerCase() === w.address.toLowerCase()) {
+        walletTokens[w.address][c].net += val  // received
+      } else {
+        walletTokens[w.address][c].net -= val  // sent
       }
     }
-    await sleep(300)
+    await sleep(400)
   }
 
-  const contracts = Object.keys(tokenMap)
-  if (!contracts.length) {
-    list.innerHTML = '<div class="feed-empty">Keine Tokens gefunden</div>'
-    return
-  }
-
-  // Step 2: for each wallet, get balance for each token
-  // Build: tokenMap[contract].holders = { walletLabel: balance }
-  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
-
-  for (const contract of contracts.slice(0, 15)) {
-    tokenMap[contract].holders = {}
-    for (const w of wallets) {
-      const d = await api({ module: 'account', action: 'tokenbalance', contractaddress: contract, address: w.address, tag: 'latest' })
-      if (d && d.status === '1' && d.result && d.result !== '0') {
-        tokenMap[contract].holders[w.label] = d.result
-      }
-      await sleep(200)
+  // Build merged token view: token -> { holders: [{label, balance}] }
+  const merged = {}
+  for (const w of wallets) {
+    for (const [contract, info] of Object.entries(walletTokens[w.address] || {})) {
+      if (info.net <= BigInt(0)) continue // skip if net negative or zero
+      if (!merged[contract]) merged[contract] = { name: info.name, symbol: info.symbol, decimals: info.decimals, holders: [] }
+      merged[contract].holders.push({
+        label: w.label,
+        balance: info.net.toString(),
+        decimals: info.decimals
+      })
     }
   }
 
-  // Step 3: render — show tokens that at least one wallet holds
-  const tokens = Object.entries(tokenMap)
-    .filter(([_, t]) => t.holders && Object.keys(t.holders).length > 0)
-    .slice(0, 20)
+  const tokens = Object.entries(merged)
+    .filter(([_, t]) => t.holders.length > 0)
+    .sort((a, b) => b[1].holders.length - a[1].holders.length)
+    .slice(0, 30)
 
   if (!tokens.length) {
-    list.innerHTML = '<div class="feed-empty">Keine aktuellen Token-Holdings gefunden</div>'
+    list.innerHTML = '<div class="feed-empty">Keine Token-Holdings gefunden</div>'
     return
   }
 
   list.innerHTML = tokens.map(([contract, t]) => {
-    const holderRows = Object.entries(t.holders).map(([label, bal]) =>
-      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${label}</span>
-        <span style="font-size:11px;font-family:var(--mono);font-weight:500">${fmtTokenAmount(bal, t.decimals)} ${t.symbol}</span>
-      </div>`
-    ).join('')
+    const holderRows = t.holders.map(h => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${h.label}</span>
+        <span style="font-size:11px;font-family:var(--mono);font-weight:600">${fmtTokenAmount(h.balance, h.decimals)} <span style="color:var(--muted);font-weight:400">${t.symbol}</span></span>
+      </div>`).join('')
 
     return `
-    <div class="token-row" style="flex-direction:column;align-items:stretch;gap:6px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="token-icon">${(t.symbol||'?').slice(0,2)}</div>
+    <div style="border-bottom:1px solid var(--border);padding:12px 18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="token-icon">${(t.symbol||'?').slice(0,3)}</div>
         <div style="flex:1">
           <div class="token-name">${t.name}</div>
-          <div class="token-symbol">${t.symbol} · ${Object.keys(t.holders).length} Wallets</div>
+          <div class="token-symbol">${t.symbol} &middot; ${t.holders.length} ${t.holders.length === 1 ? 'Wallet' : 'Wallets'}</div>
         </div>
       </div>
       <div style="padding-left:42px">${holderRows}</div>
     </div>`
   }).join('')
 }
+
 
 // ── PNL ───────────────────────────────────────────────────────────────────
 async function loadPnl() {
