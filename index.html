@@ -1,692 +1,514 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Wallet Radar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg: #f7f6f2;
-  --surface: #ffffff;
-  --border: #e8e4dc;
-  --border2: #d4cfc4;
-  --text: #1a1814;
-  --muted: #9b9488;
-  --green: #1a7a4a;
-  --green-bg: #edf7f2;
-  --red: #c0392b;
-  --red-bg: #fdf0ee;
-  --accent: #1a1814;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'Syne', sans-serif;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f2;--surface:#fff;--border:#e8e4dc;--border2:#d0ccc0;
+  --text:#1a1814;--muted:#9b9488;--faint:#c8c4bb;
+  --green:#1a7a4a;--green-bg:#edf7f2;--green-border:#bbf7d0;
+  --red:#c0392b;--red-bg:#fdf0ee;
+  --mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;
 }
-
-body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
-@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
-@keyframes spin { to{transform:rotate(360deg)} }
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes expand{from{opacity:0;transform:scaleY(.95)}to{opacity:1;transform:scaleY(1)}}
 
 /* ── HEADER ── */
-header {
-  border-bottom: 1px solid var(--border);
-  padding: 18px 36px;
-  display: flex; align-items: center; justify-content: space-between;
-  position: sticky; top: 0; z-index: 200;
-  background: rgba(247,246,242,0.96);
-  backdrop-filter: blur(16px);
+header{
+  border-bottom:1px solid var(--border);padding:18px 36px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
+  background:rgba(247,246,242,.96);backdrop-filter:blur(16px);
 }
-.header-left { display: flex; align-items: center; gap: 16px; }
-h1 { font-size: 14px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
-.live-pill {
-  display: flex; align-items: center; gap: 5px;
-  background: var(--surface); border: 1px solid var(--border);
-  padding: 4px 10px; border-radius: 20px; font-size: 10px;
-  font-family: var(--mono); color: var(--muted); letter-spacing: 1px;
-}
-.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-.alert-toggle {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-family: var(--mono); color: var(--muted);
-  cursor: pointer; padding: 4px 10px; border-radius: 20px;
-  border: 1px solid var(--border); background: var(--surface);
-  transition: all 0.2s;
-}
-.alert-toggle:hover { border-color: var(--border2); }
-.alert-toggle.active { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+h1{font-size:13px;font-weight:800;letter-spacing:3px;text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:10px}
+.live-pill{display:flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);padding:4px 10px;border-radius:20px;font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:1px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.btn-sm{font-size:10px;font-family:var(--mono);cursor:pointer;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;white-space:nowrap}
+.btn-sm:hover{border-color:var(--border2);color:var(--text)}
+.btn-primary{background:var(--text);color:#fff;border-color:var(--text)}
+.btn-primary:hover{opacity:.85;color:#fff}
 
 /* ── LAYOUT ── */
-main { max-width: 1280px; margin: 0 auto; padding: 28px 36px 60px; }
+main{max-width:1400px;margin:0 auto;padding:28px 36px 60px;display:grid;grid-template-columns:1fr 420px;gap:20px;align-items:start}
 
-/* ── STATS ── */
-.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 24px; }
-.stat {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 16px 20px;
-}
-.stat-label { font-size: 10px; font-family: var(--mono); color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-.stat-value { font-size: 22px; font-weight: 800; line-height: 1; font-family: var(--mono); }
-.stat-sub { font-size: 10px; color: var(--muted); margin-top: 5px; font-family: var(--mono); }
-.green { color: var(--green); }
-.red { color: var(--red); }
+/* ── STATS ROW ── */
+.stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:4px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px}
+.stat-label{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.stat-value{font-size:20px;font-weight:800;font-family:var(--mono);line-height:1}
+.stat-sub{font-size:10px;color:var(--faint);margin-top:4px;font-family:var(--mono)}
 
-/* ── GRID ── */
-.grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+/* ── TRADERS PANEL ── */
+.traders-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.panel-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:11px;font-family:var(--mono);color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.panel-actions{display:flex;gap:6px}
 
-/* ── WALLET PANEL ── */
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.panel-header {
-  padding: 14px 18px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
+/* ── TRADER ROW ── */
+.trader-row{border-bottom:1px solid var(--border);animation:fadeUp .3s ease}
+.trader-row:last-child{border-bottom:none}
+.trader-header{
+  display:grid;grid-template-columns:32px 1fr auto auto;
+  align-items:center;gap:12px;
+  padding:14px 20px;cursor:pointer;
+  transition:background .15s;user-select:none;
 }
-.panel-title { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-.add-btn {
-  font-size: 11px; font-family: var(--mono); cursor: pointer;
-  background: var(--text); color: white; border: none;
-  padding: 4px 10px; border-radius: 6px; transition: opacity 0.2s;
-}
-.add-btn:hover { opacity: 0.8; }
+.trader-header:hover{background:var(--bg)}
+.trader-rank{font-family:var(--mono);font-size:10px;color:var(--faint);text-align:center}
+.trader-info{}
+.trader-name{font-weight:700;font-size:14px;margin-bottom:2px}
+.trader-addr{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.trader-eth{text-align:right}
+.trader-eth-val{font-family:var(--mono);font-size:14px;font-weight:700}
+.trader-eth-usd{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.trader-chevron{font-size:10px;color:var(--faint);transition:transform .25s;flex-shrink:0}
+.trader-row.open .trader-chevron{transform:rotate(180deg)}
 
-.wallet-item {
-  padding: 12px 18px; border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 6px;
-  animation: fadeIn 0.3s ease;
-  transition: background 0.15s;
+/* ── ACCORDION ── */
+.trader-body{
+  display:none;border-top:1px solid var(--border);
+  background:var(--bg);
+  animation:expand .2s ease;transform-origin:top;
 }
-.wallet-item:last-child { border-bottom: none; }
-.wallet-item:hover { background: var(--bg); }
-.wallet-row1 { display: flex; align-items: center; justify-content: space-between; }
-.wallet-addr { font-family: var(--mono); font-size: 11px; color: var(--green); }
-.wallet-name { font-size: 12px; font-weight: 600; }
-.wallet-bal { font-family: var(--mono); font-size: 13px; font-weight: 500; }
-.wallet-row2 { display: flex; align-items: center; justify-content: space-between; }
-.wallet-pnl { font-family: var(--mono); font-size: 11px; }
-.remove-btn {
-  font-size: 10px; color: var(--muted); background: none; border: none;
-  cursor: pointer; padding: 2px 6px; border-radius: 4px;
-  transition: all 0.15s;
-}
-.remove-btn:hover { background: var(--red-bg); color: var(--red); }
+.trader-row.open .trader-body{display:block}
+.trader-body-inner{padding:0}
 
-/* ── ADD WALLET FORM ── */
-.add-form {
-  padding: 14px 18px; border-top: 1px solid var(--border);
-  display: none; flex-direction: column; gap: 8px;
-  background: var(--bg);
-}
-.add-form.open { display: flex; }
-.add-form input {
-  font-family: var(--mono); font-size: 11px;
-  border: 1px solid var(--border); border-radius: 6px;
-  padding: 7px 10px; background: var(--surface);
-  outline: none; transition: border-color 0.2s;
-}
-.add-form input:focus { border-color: var(--border2); }
-.add-form-btns { display: flex; gap: 6px; }
-.btn-confirm {
-  flex: 1; font-family: var(--mono); font-size: 11px;
-  background: var(--text); color: white; border: none;
-  padding: 7px; border-radius: 6px; cursor: pointer;
-  transition: opacity 0.2s;
-}
-.btn-confirm:hover { opacity: 0.8; }
-.btn-cancel {
-  font-family: var(--mono); font-size: 11px;
-  background: none; color: var(--muted); border: 1px solid var(--border);
-  padding: 7px 12px; border-radius: 6px; cursor: pointer;
-}
+.token-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:24px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
 
-/* ── RIGHT PANEL ── */
-.right-col { display: flex; flex-direction: column; gap: 16px; }
+.token-table{width:100%;border-collapse:collapse}
+.token-table th{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:10px 20px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
+.token-table th:last-child,.token-table td:last-child{text-align:right}
+.token-table th:nth-child(3),.token-table td:nth-child(3){text-align:right}
+.token-table td{padding:10px 20px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.token-table tr:last-child td{border-bottom:none}
+.token-table tr:hover td{background:rgba(0,0,0,.02)}
+.tok-icon{width:26px;height:26px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--mono);font-weight:700;color:var(--muted);vertical-align:middle;margin-right:8px}
+.tok-name{font-weight:600;font-size:12px}
+.tok-symbol{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.tok-amount{font-family:var(--mono);font-size:12px;font-weight:500}
+.tok-usd{font-family:var(--mono);font-size:12px;font-weight:700}
+.tok-usd.positive{color:var(--green)}
+.no-tokens{padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint)}
 
-/* ── TABS ── */
-.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 18px; }
-.tab {
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px;
-  padding: 10px 14px; cursor: pointer; color: var(--muted);
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
-  transition: all 0.15s; text-transform: uppercase;
-}
-.tab.active { color: var(--text); border-bottom-color: var(--text); }
+/* ── ADD WALLET ── */
+.add-form{display:none;padding:16px 20px;border-top:1px solid var(--border);background:var(--bg);flex-direction:column;gap:8px}
+.add-form.open{display:flex}
+.add-form input{font-family:var(--mono);font-size:11px;border:1px solid var(--border);border-radius:6px;padding:8px 12px;background:var(--surface);outline:none;transition:border-color .2s}
+.add-form input:focus{border-color:var(--border2)}
+.add-form-btns{display:flex;gap:6px}
+.btn-confirm{flex:1;font-family:var(--mono);font-size:11px;background:var(--text);color:#fff;border:none;padding:8px;border-radius:6px;cursor:pointer;transition:opacity .2s}
+.btn-confirm:hover{opacity:.8}
+.btn-cancel{font-family:var(--mono);font-size:11px;background:none;color:var(--muted);border:1px solid var(--border);padding:8px 14px;border-radius:6px;cursor:pointer}
 
-/* ── FEED ── */
-.feed { max-height: 420px; overflow-y: auto; }
-.feed-row {
-  display: grid; grid-template-columns: 60px 90px 50px 80px 1fr auto;
-  align-items: center; gap: 10px;
-  padding: 9px 18px; border-bottom: 1px solid var(--border);
-  font-family: var(--mono); font-size: 11px;
-  animation: fadeIn 0.3s ease;
-}
-.feed-row:last-child { border-bottom: none; }
-.f-time { color: var(--muted); }
-.f-wallet { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.f-dir.buy { color: var(--green); }
-.f-dir.sell { color: var(--red); }
-.f-token { font-weight: 500; }
-.f-value { color: var(--text); font-weight: 500; justify-self: end; }
-.f-age { color: var(--muted); font-size: 10px; }
-.feed-empty { padding: 40px 18px; text-align: center; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+/* ── FEED PANEL ── */
+.feed-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:sticky;top:76px}
+.feed-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sync-bar{display:flex;align-items:center;gap:8px;padding:8px 20px;border-bottom:1px solid var(--border);background:var(--bg);font-family:var(--mono);font-size:10px;color:var(--muted)}
+.sync-track{flex:1;height:2px;background:var(--border);border-radius:1px;overflow:hidden}
+.sync-fill{height:100%;background:var(--green);border-radius:1px;transition:width 1s linear}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;flex-shrink:0}
+.sync-dot.idle{background:var(--faint);animation:none}
 
-/* ── TOKENS TAB ── */
-.token-list { max-height: 420px; overflow-y: auto; }
-.token-row {
-  display: grid; grid-template-columns: 40px 1fr auto auto;
-  align-items: center; gap: 12px;
-  padding: 10px 18px; border-bottom: 1px solid var(--border);
-  animation: fadeIn 0.3s ease;
-}
-.token-row:last-child { border-bottom: none; }
-.token-icon {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--bg); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; font-family: var(--mono);
-  color: var(--muted);
-}
-.token-name { font-weight: 600; font-size: 13px; }
-.token-symbol { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-.token-bal { font-family: var(--mono); font-size: 12px; text-align: right; }
-.token-val { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; }
+.feed-list{max-height:calc(100vh - 280px);overflow-y:auto}
+.feed-row{display:flex;flex-direction:column;gap:3px;padding:10px 20px;border-bottom:1px solid var(--border);animation:fadeUp .3s ease}
+.feed-row:last-child{border-bottom:none}
+.feed-row:hover{background:var(--bg)}
+.feed-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.feed-wallet{font-weight:600;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed-amount{font-family:var(--mono);font-size:12px;font-weight:700}
+.feed-bottom{display:flex;align-items:center;justify-content:space-between}
+.feed-dir{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500}
+.feed-dir.buy{background:var(--green-bg);color:var(--green)}
+.feed-dir.sell{background:var(--red-bg);color:var(--red)}
+.feed-time{font-family:var(--mono);font-size:10px;color:var(--faint)}
+.feed-empty{padding:32px 20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint)}
 
-/* ── PNL TAB ── */
-.pnl-list { max-height: 420px; overflow-y: auto; }
-.pnl-row {
-  display: grid; grid-template-columns: 1fr auto auto auto;
-  align-items: center; gap: 16px;
-  padding: 12px 18px; border-bottom: 1px solid var(--border);
-}
-.pnl-row:last-child { border-bottom: none; }
-.pnl-name { font-weight: 600; font-size: 13px; }
-.pnl-addr { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
-.pnl-txcount { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-.pnl-vol { font-family: var(--mono); font-size: 11px; }
-.pnl-val { font-family: var(--mono); font-size: 13px; font-weight: 700; }
-.positive { color: var(--green); }
-.negative { color: var(--red); }
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--text);color:#fff;padding:12px 16px;border-radius:10px;font-family:var(--mono);font-size:11px;max-width:280px;animation:fadeUp .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.toast strong{display:block;margin-bottom:2px}
+.toast span{color:rgba(255,255,255,.65);font-size:10px}
 
-/* ── ALERT TOAST ── */
-.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
-.toast {
-  background: var(--text); color: white;
-  padding: 12px 16px; border-radius: 10px;
-  font-family: var(--mono); font-size: 11px;
-  max-width: 300px; animation: fadeIn 0.3s ease;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+@media(max-width:1024px){
+  main{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .feed-panel{position:static}
+  .feed-list{max-height:300px}
 }
-.toast-title { font-weight: 700; margin-bottom: 3px; }
-.toast-body { color: rgba(255,255,255,0.7); }
-
-/* ── LOADING ── */
-.loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
-.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin 0.8s linear infinite; }
-
-@media (max-width: 900px) {
-  header { padding: 14px 20px; }
-  main { padding: 20px; }
-  .stats { grid-template-columns: repeat(2,1fr); }
-  .grid { grid-template-columns: 1fr; }
-}
-
-/* ── SYNC BAR ── */
-.sync-bar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 18px; border-bottom: 1px solid var(--border);
-  background: var(--bg); font-family: var(--mono); font-size: 10px; color: var(--muted);
-}
-.sync-progress-track {
-  flex: 1; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden;
-}
-.sync-progress-fill {
-  height: 100%; background: var(--green); border-radius: 1px;
-  transition: width 1s linear;
-}
-.sync-status { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.sync-btn {
-  background: none; border: 1px solid var(--border); border-radius: 4px;
-  padding: 2px 8px; cursor: pointer; font-family: var(--mono); font-size: 10px;
-  color: var(--muted); transition: all 0.15s; flex-shrink: 0;
-}
-.sync-btn:hover { border-color: var(--border2); color: var(--text); }
-.sync-btn.paused { border-color: var(--green); color: var(--green); background: var(--green-bg); }
-.syncing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 1s infinite; flex-shrink: 0; }
-.syncing-dot.idle { background: var(--muted); animation: none; }
-
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-left">
-    <h1>Wallet Radar</h1>
+  <h1>Wallet Radar</h1>
+  <div class="header-right">
     <div class="live-pill"><div class="dot"></div>LIVE</div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <div class="alert-toggle" id="alertToggle" onclick="toggleAlerts()">🔔 Alerts aus</div>
+    <button class="btn-sm" id="alertBtn" onclick="toggleAlerts()">🔔 Alerts</button>
+    <button class="btn-sm btn-primary" onclick="toggleAddForm()">+ Add Wallet</button>
   </div>
 </header>
 
 <main>
+  <!-- Stats -->
   <div class="stats">
     <div class="stat">
-      <div class="stat-label">Wallets</div>
+      <div class="stat-label">Traders</div>
       <div class="stat-value" id="statWallets">0</div>
       <div class="stat-sub">Ethereum Mainnet</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Transaktionen</div>
+      <div class="stat-label">Transactions</div>
       <div class="stat-value" id="statTx">0</div>
-      <div class="stat-sub">seit Seitenaufruf</div>
+      <div class="stat-sub">since page load</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Gesamtvolumen</div>
+      <div class="stat-label">Volume</div>
       <div class="stat-value" id="statVol">0</div>
-      <div class="stat-sub">ETH heute</div>
+      <div class="stat-sub">ETH tracked</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Letzter Block</div>
+      <div class="stat-label">Latest Block</div>
       <div class="stat-value" id="statBlock">—</div>
       <div class="stat-sub" id="statBlockTime">—</div>
     </div>
   </div>
 
-  <div class="grid">
-    <!-- Wallet List -->
-    <div>
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title">Tracked Wallets</span>
-          <div style="display:flex;gap:6px">
-            <button class="add-btn" style="background:#f0fdf4;color:#1a7a4a;border:1px solid #bbf7d0" onclick="loadFamousTraders()">⭐ Famous</button>
-            <button class="add-btn" onclick="toggleForm()">+ Add</button>
-          </div>
+  <!-- Traders List -->
+  <div>
+    <div class="traders-panel">
+      <div class="panel-header">
+        <span class="panel-title">Top Traders</span>
+        <div class="panel-actions">
+          <button class="btn-sm" onclick="loadFamous()" style="color:var(--green);border-color:var(--green-border)">⭐ Famous</button>
         </div>
-        <div id="walletList"><div class="loading"><div class="spinner"></div></div></div>
-        <div class="add-form" id="addForm">
-          <input id="inputAddr" placeholder="0x... Wallet-Adresse" />
-          <input id="inputName" placeholder="Label (z.B. Vitalik)" />
-          <div class="add-form-btns">
-            <button class="btn-confirm" onclick="addWallet()">Speichern</button>
-            <button class="btn-cancel" onclick="toggleForm()">Abbrechen</button>
-          </div>
+      </div>
+      <div id="traderList"><div class="token-loading"><div class="spinner"></div>Loading…</div></div>
+      <div class="add-form" id="addForm">
+        <input id="inputAddr" placeholder="0x… Ethereum address"/>
+        <input id="inputName" placeholder="Label (e.g. Arthur Hayes)"/>
+        <div class="add-form-btns">
+          <button class="btn-confirm" onclick="addWallet()">Save</button>
+          <button class="btn-cancel" onclick="toggleAddForm()">Cancel</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Right Panel -->
-    <div class="right-col">
-      <div class="panel">
-        <div class="tabs">
-          <div class="tab active" onclick="switchTab('feed',this)">Live Feed</div>
-          <div class="tab" onclick="switchTab('tokens',this)">Tokens</div>
-          <div class="tab" onclick="switchTab('pnl',this)">PnL</div>
-        </div>
-
-        <div class="sync-bar" id="syncBar">
-          <div class="sync-status">
-            <div class="syncing-dot idle" id="syncDot"></div>
-            <span id="syncLabel">Bereit</span>
-          </div>
-          <div class="sync-progress-track">
-            <div class="sync-progress-fill" id="syncFill" style="width:100%"></div>
-          </div>
-          <button class="sync-btn" id="syncNowBtn" onclick="syncNow()">↻ Jetzt</button>
-          <button class="sync-btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
-        </div>
-        <div id="tabFeed">
-          <div class="feed" id="liveFeed">
-            <div class="feed-empty">Warte auf Transaktionen…</div>
-          </div>
-        </div>
-
-        <div id="tabTokens" style="display:none">
-          <div class="token-list" id="tokenList">
-            <div class="loading"><div class="spinner"></div></div>
-          </div>
-        </div>
-
-        <div id="tabPnl" style="display:none">
-          <div class="pnl-list" id="pnlList">
-            <div class="loading"><div class="spinner"></div></div>
-          </div>
-        </div>
+  <!-- Live Feed -->
+  <div>
+    <div class="feed-panel">
+      <div class="feed-header">
+        <span class="panel-title">Live Feed</span>
+        <button class="btn-sm" onclick="syncNow()">↻ Refresh</button>
+      </div>
+      <div class="sync-bar">
+        <div class="sync-dot idle" id="syncDot"></div>
+        <span id="syncLabel">Ready</span>
+        <div class="sync-track"><div class="sync-fill" id="syncFill" style="width:100%"></div></div>
+        <button class="btn-sm" id="pauseBtn" onclick="togglePause()" style="padding:2px 8px">⏸</button>
+      </div>
+      <div class="feed-list" id="liveFeed">
+        <div class="feed-empty">Waiting for transactions…</div>
       </div>
     </div>
   </div>
 </main>
 
-<div class="toast-container" id="toastContainer"></div>
+<div class="toast-wrap" id="toastWrap"></div>
 
 <script>
-// ── STATE ──────────────────────────────────────────────────────────────────
-const DEFAULT_WALLETS = [
-  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label: 'Vitalik Buterin' },
-  { address: '0x293Ed38530005620e4B28600f196a97E1125dAAc', label: 'Mark Cuban' },
-  { address: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', label: 'Binance Whale' },
+// ── CONSTANTS ────────────────────────────────────────────────────────────
+const ETH_PRICE_USD = 1800 // fallback; fetched on load
+const FAMOUS = [
+  {address:'0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',label:'Vitalik Buterin'},
+  {address:'0x293Ed38530005620e4B28600f196a97E1125dAAc',label:'Mark Cuban'},
+  {address:'0xf584F8728B874a6a5c7A8d4d387C9aae9172D62',label:'Jump Trading'},
+  {address:'0xbcd5000f5c522856e710c5d274bb672b2f2eefbf',label:'Polychain Capital'},
+  {address:'0x9696f59E4d72E237BE84ffd425DCaD154Bf96976',label:'Wintermute'},
+  {address:'0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503',label:'Binance Whale'},
+  {address:'0x28C6c06298d514Db089934071355E5743bf21d60',label:'Binance Hot'},
+  {address:'0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8',label:'Binance Cold'},
 ]
 
-const FAMOUS_TRADERS = [
-  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label: 'Vitalik Buterin' },
-  { address: '0x293Ed38530005620e4B28600f196a97E1125dAAc', label: 'Mark Cuban' },
-  { address: '0xf584F8728B874a6a5c7A8d4d387C9aae9172D62', label: 'Jump Trading' },
-  { address: '0xbcd5000f5c522856e710c5d274bb672b2f2eefbf', label: 'Polychain Capital' },
-  { address: '0x9696f59E4d72E237BE84ffd425DCaD154Bf96976', label: 'Wintermute' },
-  { address: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', label: 'Binance Whale' },
-  { address: '0x28C6c06298d514Db089934071355E5743bf21d60', label: 'Binance Hot' },
-  { address: '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', label: 'Binance Cold' },
-]
-
-let wallets = JSON.parse(localStorage.getItem('wr_wallets') || 'null') || DEFAULT_WALLETS
-let alertsEnabled = false
+// ── STATE ────────────────────────────────────────────────────────────────
+let wallets = JSON.parse(localStorage.getItem('wr_wallets') || 'null') || FAMOUS.slice(0,3)
+let ethPrice = ETH_PRICE_USD
+let tokenCache = {} // address -> [{symbol,name,amount,decimals,usdValue}]
+let balanceCache = {} // address -> ethBalance
 let seenTxs = new Set()
 let txTotal = 0
 let totalVolume = 0
-let pnlData = {}
-let tokenData = {}
-let currentTab = 'feed'
+let alertsEnabled = false
+let syncPaused = false
+let isSyncing = false
+let countdown = 15
+let countdownTimer = null
 
-// ── UTILS ──────────────────────────────────────────────────────────────────
-const shortAddr = a => a.slice(0,6) + '…' + a.slice(-4)
-const fmtETH = wei => {
-  const e = Number(BigInt(String(wei))) / 1e18
-  if (e >= 1000) return e.toFixed(0) + ' ETH'
-  if (e >= 1) return e.toFixed(3) + ' ETH'
-  if (e > 0) return e.toFixed(6) + ' ETH'
-  return '0 ETH'
-}
-const fmtNum = n => {
-  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M'
-  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K'
-  return n.toFixed(2)
-}
-const timeAgo = ts => {
-  const d = Date.now()/1000 - parseInt(ts)
-  if (d < 60) return Math.floor(d) + 's'
-  if (d < 3600) return Math.floor(d/60) + 'm'
-  return Math.floor(d/3600) + 'h'
-}
-const nowTime = () => new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit',second:'2-digit'})
-const saveWallets = () => localStorage.setItem('wr_wallets', JSON.stringify(wallets))
-
-// ── API ────────────────────────────────────────────────────────────────────
+// ── API ──────────────────────────────────────────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms))
 async function api(params) {
-  const p = new URLSearchParams({ ...params, _t: Date.now() })
   try {
-    const r = await fetch('/api/etherscan?' + p)
+    const r = await fetch('/api/etherscan?' + new URLSearchParams({...params, _t: Date.now()}))
     return await r.json()
   } catch { return null }
 }
 
-// ── FAMOUS TRADERS ───────────────────────────────────────────────────────
-function loadFamousTraders() {
-  let added = 0
-  for (const t of FAMOUS_TRADERS) {
-    if (!wallets.find(w => w.address.toLowerCase() === t.address.toLowerCase())) {
-      wallets.push(t)
-      added++
-    }
-  }
-  saveWallets()
-  renderWallets()
-  loadBalances()
-  showToast(`⭐ ${added} Famous Traders hinzugefügt`, 'Vitalik, Mark Cuban, Jump Trading, Wintermute…')
+// ── ETH PRICE ────────────────────────────────────────────────────────────
+async function fetchEthPrice() {
+  try {
+    const d = await api({module:'stats', action:'ethprice'})
+    if (d && d.status === '1') ethPrice = parseFloat(d.result.ethusd)
+  } catch {}
 }
 
-// ── ALERTS ────────────────────────────────────────────────────────────────
-async function toggleAlerts() {
-  if (!alertsEnabled) {
-    const perm = await Notification.requestPermission()
-    if (perm === 'granted') {
-      alertsEnabled = true
-      document.getElementById('alertToggle').classList.add('active')
-      document.getElementById('alertToggle').textContent = '🔔 Alerts an'
-      showToast('Alerts aktiviert', 'Du wirst bei neuen Transaktionen benachrichtigt')
-    }
-  } else {
-    alertsEnabled = false
-    document.getElementById('alertToggle').classList.remove('active')
-    document.getElementById('alertToggle').textContent = '🔔 Alerts aus'
-  }
+// ── FORMAT HELPERS ────────────────────────────────────────────────────────
+const shortAddr = a => a.slice(0,6)+'…'+a.slice(-4)
+const fmtETH = n => {
+  if (n >= 1e6) return (n/1e6).toFixed(2)+'M'
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'K'
+  if (n >= 1) return n.toFixed(2)
+  return n.toFixed(4)
+}
+const fmtUSD = n => {
+  if (!n || n === 0) return '—'
+  if (n >= 1e9) return '$'+(n/1e9).toFixed(2)+'B'
+  if (n >= 1e6) return '$'+(n/1e6).toFixed(2)+'M'
+  if (n >= 1e3) return '$'+(n/1e3).toFixed(1)+'K'
+  return '$'+n.toFixed(2)
+}
+const fmtTokenAmt = (value, decimals) => {
+  try {
+    const d = parseInt(decimals)||18
+    const n = Number(BigInt(value)) / Math.pow(10, d)
+    if (n >= 1e9) return (n/1e9).toFixed(2)+'B'
+    if (n >= 1e6) return (n/1e6).toFixed(2)+'M'
+    if (n >= 1e3) return (n/1e3).toFixed(1)+'K'
+    if (n >= 1) return n.toFixed(2)
+    if (n > 0) return n.toFixed(4)
+    return '0'
+  } catch { return '?' }
+}
+const nowTime = () => new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+const timeAgo = ts => {
+  const d = Date.now()/1000 - parseInt(ts)
+  if (d < 60) return Math.floor(d)+'s ago'
+  if (d < 3600) return Math.floor(d/60)+'m ago'
+  return Math.floor(d/3600)+'h ago'
 }
 
-function fireAlert(wallet, type, amount, token) {
-  if (!alertsEnabled) return
-  const eth = Number(BigInt(String(amount))) / 1e18
-  if (eth < 0.1) return // Nur große Transaktionen
-  const title = `${wallet} — ${type === 'in' ? '📥' : '📤'} ${token}`
-  const body = `${eth.toFixed(3)} ${token}`
-  new Notification(title, { body, icon: '/favicon.ico' })
-  showToast(title, body)
-}
+// ── WALLET MANAGEMENT ────────────────────────────────────────────────────
+const saveWallets = () => localStorage.setItem('wr_wallets', JSON.stringify(wallets))
 
-function showToast(title, body) {
-  const c = document.getElementById('toastContainer')
-  const t = document.createElement('div')
-  t.className = 'toast'
-  t.innerHTML = `<div class="toast-title">${title}</div><div class="toast-body">${body}</div>`
-  c.appendChild(t)
-  setTimeout(() => t.remove(), 5000)
-}
-
-// ── WALLET UI ─────────────────────────────────────────────────────────────
-function toggleForm() {
+function toggleAddForm() {
   document.getElementById('addForm').classList.toggle('open')
-  document.getElementById('inputAddr').focus()
 }
 
 async function addWallet() {
   const addr = document.getElementById('inputAddr').value.trim()
   const label = document.getElementById('inputName').value.trim()
-  if (!addr.startsWith('0x') || addr.length !== 42) {
-    showToast('⚠ Ungültige Adresse', 'Bitte eine gültige Ethereum-Adresse eingeben')
-    return
-  }
-  if (wallets.find(w => w.address.toLowerCase() === addr.toLowerCase())) {
-    showToast('⚠ Bereits vorhanden', 'Diese Wallet wird bereits getrackt')
-    return
-  }
-  wallets.push({ address: addr, label: label || shortAddr(addr) })
+  if (!addr.startsWith('0x') || addr.length !== 42) { toast('⚠ Invalid address', ''); return }
+  if (wallets.find(w => w.address.toLowerCase() === addr.toLowerCase())) { toast('Already tracked', ''); return }
+  wallets.push({address: addr, label: label || shortAddr(addr)})
   saveWallets()
   document.getElementById('inputAddr').value = ''
   document.getElementById('inputName').value = ''
-  toggleForm()
-  renderWallets()
-  loadBalances()
-  showToast('✓ Wallet hinzugefügt', label || shortAddr(addr))
+  toggleAddForm()
+  await renderTraders()
+  toast('✓ Added', label || shortAddr(addr))
 }
 
-function removeWallet(addr) {
+function removeWallet(addr, e) {
+  e.stopPropagation()
   wallets = wallets.filter(w => w.address !== addr)
+  delete tokenCache[addr]
+  delete balanceCache[addr]
   saveWallets()
-  renderWallets()
-  loadBalances()
+  renderTraders()
 }
 
-function renderWallets() {
-  const list = document.getElementById('walletList')
-  document.getElementById('statWallets').textContent = wallets.length
-  if (!wallets.length) {
-    list.innerHTML = '<div class="feed-empty">Keine Wallets. Füge eine hinzu!</div>'
-    return
+function loadFamous() {
+  let added = 0
+  for (const f of FAMOUS) {
+    if (!wallets.find(w => w.address.toLowerCase() === f.address.toLowerCase())) {
+      wallets.push(f); added++
+    }
   }
-  list.innerHTML = wallets.map(w => `
-    <div class="wallet-item">
-      <div class="wallet-row1">
-        <div>
-          <div class="wallet-addr">${shortAddr(w.address)}</div>
-          <div class="wallet-name">${w.label}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="wallet-bal" id="bal-${w.address}">…</div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted)">ETH</div>
-        </div>
-      </div>
-      <div class="wallet-row2">
-        <div class="wallet-pnl" id="pnl-${w.address}">PnL wird geladen…</div>
-        <button class="remove-btn" onclick="removeWallet('${w.address}')">✕ entfernen</button>
-      </div>
-    </div>
-  `).join('')
+  saveWallets()
+  renderTraders()
+  loadAllBalances()
+  toast(`⭐ ${added} traders added`, 'Vitalik, Jump, Wintermute…')
 }
 
-// ── BALANCES ──────────────────────────────────────────────────────────────
-async function loadBalances() {
+// ── BALANCES ─────────────────────────────────────────────────────────────
+async function loadAllBalances() {
   if (!wallets.length) return
   const addresses = wallets.map(w => w.address).join(',')
-  const d = await api({ module: 'account', action: 'balancemulti', address: addresses, tag: 'latest' })
+  const d = await api({module:'account', action:'balancemulti', address: addresses, tag:'latest'})
   if (!d || d.status !== '1') return
   for (const item of d.result) {
-    const el = document.getElementById('bal-' + item.account)
-    if (el) {
-      const eth = Number(BigInt(item.balance)) / 1e18
-      el.textContent = eth.toFixed(3)
-    }
+    const eth = Number(BigInt(item.balance)) / 1e18
+    balanceCache[item.account.toLowerCase()] = eth
   }
+  // Re-render to update balances
+  renderTraderList()
 }
 
-// ── TOKEN TRACKING ────────────────────────────────────────────────────────
-function fmtTokenAmount(value, decimals) {
-  try {
-    const d = parseInt(decimals) || 18
-    const num = Number(BigInt(value)) / Math.pow(10, d)
-    if (num >= 1e9) return (num/1e9).toFixed(2) + 'B'
-    if (num >= 1e6) return (num/1e6).toFixed(2) + 'M'
-    if (num >= 1e3) return (num/1e3).toFixed(1) + 'K'
-    if (num >= 1) return num.toFixed(2)
-    if (num > 0) return num.toFixed(4)
-    return '0'
-  } catch { return '?' }
-}
+// ── TOKEN LOADING (per wallet, on accordion open) ─────────────────────────
+async function loadWalletTokens(address) {
+  if (tokenCache[address]) return tokenCache[address] // cached
 
-async function loadTokens() {
-  const list = document.getElementById('tokenList')
-  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  // Get recent token transfers and compute net balance
+  const d = await api({module:'account', action:'tokentx', address, sort:'desc', offset:'100', page:'1'})
+  if (!d || d.status !== '1') { tokenCache[address] = []; return [] }
 
-  // For each wallet: fetch recent token transfers, compute net balance per token
-  // This avoids per-token balance calls and stays well within rate limits
-  const walletTokens = {} // walletAddr -> { contractAddr -> { name, symbol, decimals, netBalance } }
-
-  for (const w of wallets) {
-    walletTokens[w.address] = {}
-    const d = await api({ module: 'account', action: 'tokentx', address: w.address, sort: 'desc', offset: '100', page: '1' })
-    if (!d || d.status !== '1') { await sleep(400); continue }
-
-    for (const tx of d.result) {
-      const c = tx.contractAddress
-      if (!walletTokens[w.address][c]) {
-        walletTokens[w.address][c] = {
-          name: tx.tokenName, symbol: tx.tokenSymbol,
-          decimals: parseInt(tx.tokenDecimal) || 18,
-          net: BigInt(0)
-        }
-      }
-      const val = BigInt(tx.value || '0')
-      if (tx.to.toLowerCase() === w.address.toLowerCase()) {
-        walletTokens[w.address][c].net += val  // received
-      } else {
-        walletTokens[w.address][c].net -= val  // sent
-      }
-    }
-    await sleep(400)
+  const map = {}
+  for (const tx of d.result) {
+    const c = tx.contractAddress
+    if (!map[c]) map[c] = {name:tx.tokenName, symbol:tx.tokenSymbol, decimals:parseInt(tx.tokenDecimal)||18, net:BigInt(0)}
+    const val = BigInt(tx.value || '0')
+    if (tx.to.toLowerCase() === address.toLowerCase()) map[c].net += val
+    else map[c].net -= val
   }
 
-  // Build merged token view: token -> { holders: [{label, balance}] }
-  const merged = {}
-  for (const w of wallets) {
-    for (const [contract, info] of Object.entries(walletTokens[w.address] || {})) {
-      if (info.net <= BigInt(0)) continue // skip if net negative or zero
-      if (!merged[contract]) merged[contract] = { name: info.name, symbol: info.symbol, decimals: info.decimals, holders: [] }
-      merged[contract].holders.push({
-        label: w.label,
-        balance: info.net.toString(),
-        decimals: info.decimals
-      })
-    }
-  }
-
-  const tokens = Object.entries(merged)
-    .filter(([_, t]) => t.holders.length > 0)
-    .sort((a, b) => b[1].holders.length - a[1].holders.length)
+  const tokens = Object.entries(map)
+    .filter(([_,t]) => t.net > BigInt(0))
+    .map(([contract, t]) => {
+      const amount = Number(t.net) / Math.pow(10, t.decimals)
+      // Rough USD estimate for known stablecoins, otherwise skip
+      let usdValue = 0
+      const sym = t.symbol.toUpperCase()
+      if (sym === 'USDC' || sym === 'USDT' || sym === 'DAI' || sym === 'BUSD' || sym === 'FRAX') usdValue = amount
+      else if (sym === 'WETH' || sym === 'STETH' || sym === 'WSTETH') usdValue = amount * ethPrice
+      else if (sym === 'WBTC') usdValue = amount * 65000
+      return {symbol: t.symbol, name: t.name, amount, decimals: t.decimals, net: t.net.toString(), usdValue, contract}
+    })
+    .sort((a,b) => b.usdValue - a.usdValue || b.amount - a.amount)
     .slice(0, 30)
 
-  if (!tokens.length) {
-    list.innerHTML = '<div class="feed-empty">Keine Token-Holdings gefunden</div>'
+  tokenCache[address] = tokens
+  return tokens
+}
+
+// ── RENDER TRADERS ────────────────────────────────────────────────────────
+function renderTraderList() {
+  const list = document.getElementById('traderList')
+  document.getElementById('statWallets').textContent = wallets.length
+
+  if (!wallets.length) {
+    list.innerHTML = '<div class="feed-empty">No wallets. Click + Add Wallet or ⭐ Famous</div>'
     return
   }
 
-  list.innerHTML = tokens.map(([contract, t]) => {
-    const holderRows = t.holders.map(h => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${h.label}</span>
-        <span style="font-size:11px;font-family:var(--mono);font-weight:600">${fmtTokenAmount(h.balance, h.decimals)} <span style="color:var(--muted);font-weight:400">${t.symbol}</span></span>
-      </div>`).join('')
+  // Sort by ETH balance descending
+  const sorted = [...wallets].map(w => ({
+    ...w,
+    eth: balanceCache[w.address.toLowerCase()] || 0
+  })).sort((a,b) => b.eth - a.eth)
 
+  list.innerHTML = sorted.map((w, i) => {
+    const ethVal = w.eth
+    const usdVal = ethVal * ethPrice
     return `
-    <div style="border-bottom:1px solid var(--border);padding:12px 18px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div class="token-icon">${(t.symbol||'?').slice(0,3)}</div>
-        <div style="flex:1">
-          <div class="token-name">${t.name}</div>
-          <div class="token-symbol">${t.symbol} &middot; ${t.holders.length} ${t.holders.length === 1 ? 'Wallet' : 'Wallets'}</div>
+    <div class="trader-row" id="row-${w.address}">
+      <div class="trader-header" onclick="toggleAccordion('${w.address}')">
+        <div class="trader-rank">#${i+1}</div>
+        <div class="trader-info">
+          <div class="trader-name">${w.label}</div>
+          <div class="trader-addr">${shortAddr(w.address)}</div>
+        </div>
+        <div class="trader-eth">
+          <div class="trader-eth-val">${ethVal > 0 ? fmtETH(ethVal)+' ETH' : '…'}</div>
+          <div class="trader-eth-usd">${ethVal > 0 ? fmtUSD(usdVal) : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="removeWallet('${w.address}',event)" style="font-size:10px;color:var(--faint);background:none;border:none;cursor:pointer;padding:2px 4px" title="Remove">✕</button>
+          <div class="trader-chevron">▼</div>
         </div>
       </div>
-      <div style="padding-left:42px">${holderRows}</div>
+      <div class="trader-body" id="body-${w.address}">
+        <div class="token-loading" id="tokens-${w.address}">
+          <div class="spinner"></div>Loading token holdings…
+        </div>
+      </div>
     </div>`
   }).join('')
 }
 
+async function renderTraders() {
+  renderTraderList()
+}
 
-// ── PNL ───────────────────────────────────────────────────────────────────
-async function loadPnl() {
-  const list = document.getElementById('pnlList')
-  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+async function toggleAccordion(address) {
+  const row = document.getElementById(`row-${address}`)
+  const body = document.getElementById(`body-${address}`)
+  const wasOpen = row.classList.contains('open')
 
-  const results = []
-  for (const w of wallets) {
-    const d = await api({ module: 'account', action: 'txlist', address: w.address, sort: 'desc', offset: '50', page: '1' })
-    if (!d || d.status !== '1') { results.push({ ...w, txCount: 0, volume: 0, pnl: 0 }); continue }
+  // Close all others
+  document.querySelectorAll('.trader-row.open').forEach(r => r.classList.remove('open'))
 
-    let inFlow = 0, outFlow = 0, txCount = d.result.length
-    for (const tx of d.result) {
-      const eth = Number(BigInt(tx.value)) / 1e18
-      const fee = (Number(BigInt(tx.gasUsed || '21000')) * Number(BigInt(tx.gasPrice || '0'))) / 1e18
-      if (tx.to.toLowerCase() === w.address.toLowerCase()) inFlow += eth
-      else { outFlow += eth; outFlow += fee }
+  if (!wasOpen) {
+    row.classList.add('open')
+    // Load tokens if not cached
+    const cached = tokenCache[address]
+    if (!cached) {
+      body.innerHTML = '<div class="token-loading"><div class="spinner"></div>Loading token holdings…</div>'
+      const tokens = await loadWalletTokens(address)
+      renderTokenTable(address, tokens)
+    } else {
+      renderTokenTable(address, cached)
     }
-    const pnl = inFlow - outFlow
-    const volume = inFlow + outFlow
-    results.push({ ...w, txCount, volume, pnl, inFlow, outFlow })
+  }
+}
 
-    // Update PnL in sidebar
-    const el = document.getElementById('pnl-' + w.address)
-    if (el) {
-      const sign = pnl >= 0 ? '+' : ''
-      el.innerHTML = `<span class="${pnl >= 0 ? 'positive' : 'negative'}">${sign}${pnl.toFixed(3)} ETH</span>`
-    }
-    await sleep(300)
+function renderTokenTable(address, tokens) {
+  const body = document.getElementById(`body-${address}`)
+  if (!tokens.length) {
+    body.innerHTML = '<div class="no-tokens">No significant token holdings found in recent transactions</div>'
+    return
   }
 
-  list.innerHTML = results.map(r => `
-    <div class="pnl-row">
-      <div>
-        <div class="pnl-name">${r.label}</div>
-        <div class="pnl-addr">${shortAddr(r.address)}</div>
-      </div>
-      <div class="pnl-txcount">${r.txCount} Txs</div>
-      <div class="pnl-vol">${r.volume.toFixed(2)} ETH</div>
-      <div class="pnl-val ${r.pnl >= 0 ? 'positive' : 'negative'}">${r.pnl >= 0 ? '+' : ''}${r.pnl.toFixed(3)} ETH</div>
-    </div>
-  `).join('')
+  const rows = tokens.map(t => {
+    const usdStr = t.usdValue > 0 ? `<span class="tok-usd positive">${fmtUSD(t.usdValue)}</span>` : '<span class="tok-usd">—</span>'
+    const initials = (t.symbol || '?').slice(0,3).toUpperCase()
+    return `
+    <tr>
+      <td>
+        <span class="tok-icon">${initials}</span>
+        <span class="tok-name">${t.name.slice(0,22)}</span>
+      </td>
+      <td><span class="tok-symbol">${t.symbol}</span></td>
+      <td><span class="tok-amount">${fmtTokenAmt(t.net, t.decimals)}</span></td>
+      <td>${usdStr}</td>
+    </tr>`
+  }).join('')
+
+  body.innerHTML = `
+  <table class="token-table">
+    <thead>
+      <tr>
+        <th>Token</th>
+        <th>Symbol</th>
+        <th>Amount</th>
+        <th>Value (USD)</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`
 }
 
 // ── LIVE FEED ─────────────────────────────────────────────────────────────
-function addFeedRow(tx, walletLabel, walletAddr) {
+function addFeedRow(tx, label, walletAddr) {
   const feed = document.getElementById('liveFeed')
   const empty = feed.querySelector('.feed-empty')
   if (empty) feed.innerHTML = ''
@@ -694,33 +516,37 @@ function addFeedRow(tx, walletLabel, walletAddr) {
   const isIn = tx.to && tx.to.toLowerCase() === walletAddr.toLowerCase()
   const eth = Number(BigInt(tx.value || '0')) / 1e18
   const token = tx.tokenSymbol || 'ETH'
+  const amount = eth > 0 ? fmtETH(eth) + ' ' + token : '—'
 
   const row = document.createElement('div')
   row.className = 'feed-row'
   row.innerHTML = `
-    <span class="f-time">${nowTime()}</span>
-    <span class="f-wallet">${walletLabel}</span>
-    <span class="f-dir ${isIn ? 'buy' : 'sell'}">${isIn ? '▲ IN' : '▼ OUT'}</span>
-    <span class="f-token">${token}</span>
-    <span class="f-value">${eth > 0 ? eth.toFixed(4) + ' ' + token : '—'}</span>
-    <span class="f-age">${timeAgo(tx.timeStamp)}</span>
-  `
+    <div class="feed-top">
+      <span class="feed-wallet">${label}</span>
+      <span class="feed-amount">${amount}</span>
+    </div>
+    <div class="feed-bottom">
+      <span class="feed-dir ${isIn?'buy':'sell'}">${isIn?'▲ IN':'▼ OUT'}</span>
+      <span class="feed-time">${timeAgo(tx.timeStamp)}</span>
+    </div>`
   feed.insertBefore(row, feed.firstChild)
 
   txTotal++
   totalVolume += eth
   document.getElementById('statTx').textContent = txTotal
-  document.getElementById('statVol').textContent = fmtNum(totalVolume)
-  while (feed.children.length > 80) feed.removeChild(feed.lastChild)
+  document.getElementById('statVol').textContent = fmtETH(totalVolume)
+  while (feed.children.length > 60) feed.removeChild(feed.lastChild)
 
-  fireAlert(walletLabel, isIn ? 'in' : 'out', tx.value || '0', token)
+  if (alertsEnabled && eth > 0.5) {
+    fireAlert(label, isIn ? 'IN' : 'OUT', amount)
+  }
 }
 
 async function pollFeed() {
   for (const w of wallets) {
-    const d = await api({ module: 'account', action: 'txlist', address: w.address, sort: 'desc', offset: '5', page: '1' })
+    const d = await api({module:'account', action:'txlist', address:w.address, sort:'desc', offset:'5', page:'1'})
     if (d && d.status === '1') {
-      for (const tx of d.result.slice(0, 3)) {
+      for (const tx of d.result.slice(0,3)) {
         if (!seenTxs.has(tx.hash) && tx.value !== '0') {
           seenTxs.add(tx.hash)
           addFeedRow(tx, w.label, w.address)
@@ -733,131 +559,111 @@ async function pollFeed() {
 
 // ── BLOCK ─────────────────────────────────────────────────────────────────
 async function updateBlock() {
-  const d = await api({ module: 'proxy', action: 'eth_blockNumber' })
+  const d = await api({module:'proxy', action:'eth_blockNumber'})
   if (d && d.result) {
-    document.getElementById('statBlock').textContent = parseInt(d.result, 16).toLocaleString('de-DE')
+    document.getElementById('statBlock').textContent = parseInt(d.result,16).toLocaleString('de-DE')
     document.getElementById('statBlockTime').textContent = nowTime()
   }
 }
 
-// ── TABS ──────────────────────────────────────────────────────────────────
-function switchTab(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
-  el.classList.add('active')
-  document.getElementById('tabFeed').style.display = name === 'feed' ? '' : 'none'
-  document.getElementById('tabTokens').style.display = name === 'tokens' ? '' : 'none'
-  document.getElementById('tabPnl').style.display = name === 'pnl' ? '' : 'none'
-  currentTab = name
-  if (name === 'tokens') loadTokens()
-  if (name === 'pnl') loadPnl()
+// ── ALERTS ────────────────────────────────────────────────────────────────
+async function toggleAlerts() {
+  if (!alertsEnabled) {
+    const p = await Notification.requestPermission()
+    if (p === 'granted') {
+      alertsEnabled = true
+      document.getElementById('alertBtn').textContent = '🔔 ON'
+      document.getElementById('alertBtn').style.color = 'var(--green)'
+      toast('Alerts enabled', 'You\'ll be notified on transactions > 0.5 ETH')
+    }
+  } else {
+    alertsEnabled = false
+    document.getElementById('alertBtn').textContent = '🔔 Alerts'
+    document.getElementById('alertBtn').style.color = ''
+  }
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────
-const sleep = ms => new Promise(r => setTimeout(r, ms))
+function fireAlert(label, dir, amount) {
+  new Notification(`${label} — ${dir}`, {body: amount})
+  toast(`${label}`, `${dir} ${amount}`)
+}
 
-// ── SMART SYNC SYSTEM ─────────────────────────────────────────────────────
-const POLL_INTERVAL = 15  // seconds between feed polls
-const BALANCE_INTERVAL = 60
-const BLOCK_INTERVAL = 30
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function toast(title, body) {
+  const wrap = document.getElementById('toastWrap')
+  const el = document.createElement('div')
+  el.className = 'toast'
+  el.innerHTML = `<strong>${title}</strong><span>${body}</span>`
+  wrap.appendChild(el)
+  setTimeout(() => el.remove(), 4000)
+}
 
-let syncPaused = false
-let syncCountdown = POLL_INTERVAL
-let countdownTimer = null
-let isSyncing = false
-
-function setSyncState(syncing, label) {
-  isSyncing = syncing
+// ── SYNC SYSTEM ───────────────────────────────────────────────────────────
+function setSyncing(active, label) {
+  isSyncing = active
   const dot = document.getElementById('syncDot')
   const lbl = document.getElementById('syncLabel')
-  if (dot) dot.className = 'syncing-dot' + (syncing ? '' : ' idle')
+  if (dot) dot.className = 'sync-dot' + (active ? '' : ' idle')
   if (lbl) lbl.textContent = label
 }
 
-function startCountdown(seconds, onDone) {
+function startCountdown(sec, onDone) {
   clearInterval(countdownTimer)
-  syncCountdown = seconds
+  countdown = sec
   const fill = document.getElementById('syncFill')
-  const lbl = document.getElementById('syncLabel')
   if (fill) fill.style.width = '100%'
-
   countdownTimer = setInterval(() => {
     if (syncPaused) return
-    syncCountdown--
-    const pct = (syncCountdown / seconds) * 100
+    countdown--
+    const pct = Math.max(0, (countdown / sec) * 100)
     if (fill) fill.style.width = pct + '%'
-    if (lbl && !isSyncing) lbl.textContent = `Nächste Sync in ${syncCountdown}s`
-    if (syncCountdown <= 0) {
-      clearInterval(countdownTimer)
-      onDone()
-    }
+    const lbl = document.getElementById('syncLabel')
+    if (lbl && !isSyncing) lbl.textContent = `Next sync in ${countdown}s`
+    if (countdown <= 0) { clearInterval(countdownTimer); onDone() }
   }, 1000)
 }
 
 async function runSync() {
   if (isSyncing) return
-  setSyncState(true, 'Synchronisiere Feed…')
+  setSyncing(true, 'Syncing…')
   await pollFeed()
-  setSyncState(false, 'Feed aktualisiert')
-  startCountdown(POLL_INTERVAL, runSync)
+  setSyncing(false, 'Up to date')
+  startCountdown(15, runSync)
 }
 
 async function syncNow() {
   if (isSyncing) return
   clearInterval(countdownTimer)
-  setSyncState(true, 'Lade alle Daten…')
-  await Promise.all([pollFeed(), updateBlock(), loadBalances()])
-  setSyncState(false, 'Alles aktuell ✓')
-  startCountdown(POLL_INTERVAL, runSync)
+  setSyncing(true, 'Syncing all data…')
+  await Promise.all([pollFeed(), updateBlock(), loadAllBalances()])
+  renderTraderList()
+  setSyncing(false, 'All data refreshed ✓')
+  startCountdown(15, runSync)
 }
 
 function togglePause() {
   syncPaused = !syncPaused
   const btn = document.getElementById('pauseBtn')
+  if (btn) btn.textContent = syncPaused ? '▶' : '⏸'
   const lbl = document.getElementById('syncLabel')
-  if (btn) {
-    btn.textContent = syncPaused ? '▶ Weiter' : '⏸ Pause'
-    btn.classList.toggle('paused', syncPaused)
-  }
-  if (lbl) lbl.textContent = syncPaused ? 'Pausiert' : `Nächste Sync in ${syncCountdown}s`
+  if (lbl) lbl.textContent = syncPaused ? 'Paused' : `Next sync in ${countdown}s`
 }
 
-// Pause when tab is hidden, resume when visible
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    syncPaused = true
-  } else {
-    syncPaused = false
-    // If overdue, sync immediately
-    if (syncCountdown <= 0) syncNow()
-  }
+  if (!document.hidden && syncPaused) { syncPaused = false; if (countdown <= 0) syncNow() }
 })
-
-// Block counter ticks independently
-let blockInterval = null
-async function startBlockPolling() {
-  await updateBlock()
-  blockInterval = setInterval(() => {
-    if (!syncPaused) updateBlock()
-  }, BLOCK_INTERVAL * 1000)
-}
-
-// Balance refreshes every minute
-let balanceInterval = null
-async function startBalancePolling() {
-  balanceInterval = setInterval(() => {
-    if (!syncPaused) loadBalances()
-  }, BALANCE_INTERVAL * 1000)
-}
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 async function init() {
-  renderWallets()
-  setSyncState(true, 'Erste Synchronisation…')
-  await Promise.all([loadBalances(), updateBlock(), pollFeed()])
-  setSyncState(false, 'Bereit')
-  startCountdown(POLL_INTERVAL, runSync)
-  startBlockPolling()
-  startBalancePolling()
+  await fetchEthPrice()
+  renderTraderList()
+  setSyncing(true, 'Loading…')
+  await Promise.all([loadAllBalances(), updateBlock(), pollFeed()])
+  renderTraderList()
+  setSyncing(false, 'Up to date')
+  startCountdown(15, runSync)
+  setInterval(loadAllBalances, 60000)
+  setInterval(updateBlock, 30000)
 }
 
 init()
