@@ -231,14 +231,23 @@ main{max-width:1400px;margin:0 auto;padding:28px 36px 60px;display:grid;grid-tem
 // ── CONSTANTS ────────────────────────────────────────────────────────────
 const ETH_PRICE_USD = 1800 // fallback; fetched on load
 const FAMOUS = [
-  {address:'0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',label:'Vitalik Buterin'},
-  {address:'0x293Ed38530005620e4B28600f196a97E1125dAAc',label:'Mark Cuban'},
-  {address:'0xf584F8728B874a6a5c7A8d4d387C9aae9172D62',label:'Jump Trading'},
-  {address:'0xbcd5000f5c522856e710c5d274bb672b2f2eefbf',label:'Polychain Capital'},
-  {address:'0x9696f59E4d72E237BE84ffd425DCaD154Bf96976',label:'Wintermute'},
-  {address:'0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503',label:'Binance Whale'},
-  {address:'0x28C6c06298d514Db089934071355E5743bf21d60',label:'Binance Hot'},
-  {address:'0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8',label:'Binance Cold'},
+  // Founders & CEOs
+  {address:'0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label:'Vitalik Buterin', tag:'ETH Co-Founder'},
+  {address:'0x5b76f5b8fc9d700624f78208132f91ad4e61a1f0', label:'Brian Armstrong', tag:'Coinbase CEO'},
+  {address:'0x81b2587f04ddf814094ab88efdd4f29ee3407437', label:'CZ Binance', tag:'Binance Founder'},
+  {address:'0x293Ed38530005620e4B28600f196a97E1125dAAc', label:'Mark Cuban', tag:'Investor'},
+  // Funds & Market Makers
+  {address:'0xf584F8728B874a6a5c7A8d4d387C9aae9172D62', label:'Jump Trading', tag:'Market Maker'},
+  {address:'0x9696f59E4d72E237BE84ffd425DCaD154Bf96976', label:'Wintermute', tag:'Market Maker'},
+  {address:'0xbcd5000f5c522856e710c5d274bb672b2f2eefbf', label:'Polychain Capital', tag:'VC Fund'},
+  // Exchanges
+  {address:'0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', label:'Binance Whale', tag:'Exchange'},
+  {address:'0x28C6c06298d514Db089934071355E5743bf21d60', label:'Binance Hot', tag:'Exchange'},
+  {address:'0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', label:'Binance Cold', tag:'Exchange'},
+  {address:'0xA090e606E30bD747d4E6245a1517EbE430F0057e', label:'Kraken', tag:'Exchange'},
+  // Meme Traders
+  {address:'0xd3dce716f3ef535c5ff8d041c1a41c3bd89b97ae', label:'Roaring Kitty', tag:'Meme Trader'},
+  {address:'0x6dfc34609a05bc22319fa4cce1d1e2929548c0d7', label:'Ansem', tag:'Meme Trader'},
 ]
 
 // ── STATE ────────────────────────────────────────────────────────────────
@@ -347,7 +356,7 @@ function loadFamous() {
   saveWallets()
   renderTraders()
   loadAllBalances()
-  toast(`⭐ ${added} traders added`, 'Vitalik, Jump, Wintermute…')
+  toast(`⭐ ${added} traders added`, 'Vitalik, CZ, Armstrong, Kraken, Wintermute…')
 }
 
 // ── BALANCES ─────────────────────────────────────────────────────────────
@@ -425,7 +434,7 @@ function renderTraderList() {
         <div class="trader-rank">#${i+1}</div>
         <div class="trader-info">
           <div class="trader-name">${w.label}</div>
-          <div class="trader-addr">${shortAddr(w.address)}</div>
+          <div class="trader-addr">${shortAddr(w.address)}${w.tag ? ' · <span style=\"color:var(--muted);font-style:italic\">' + w.tag + '</span>' : ''}</div>
         </div>
         <div class="trader-eth">
           <div class="trader-eth-val">${ethVal > 0 ? fmtETH(ethVal)+' ETH' : '…'}</div>
