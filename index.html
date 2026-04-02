@@ -277,7 +277,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 28px 36px 60px; }
       <div class="panel">
         <div class="panel-header">
           <span class="panel-title">Tracked Wallets</span>
-          <button class="add-btn" onclick="toggleForm()">+ Hinzufügen</button>
+          <div style="display:flex;gap:6px">
+            <button class="add-btn" style="background:#f0fdf4;color:#1a7a4a;border:1px solid #bbf7d0" onclick="loadFamousTraders()">⭐ Famous</button>
+            <button class="add-btn" onclick="toggleForm()">+ Add</button>
+          </div>
         </div>
         <div id="walletList"><div class="loading"><div class="spinner"></div></div></div>
         <div class="add-form" id="addForm">
@@ -327,9 +330,20 @@ main { max-width: 1280px; margin: 0 auto; padding: 28px 36px 60px; }
 <script>
 // ── STATE ──────────────────────────────────────────────────────────────────
 const DEFAULT_WALLETS = [
-  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label: 'vitalik.eth' },
+  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label: 'Vitalik Buterin' },
+  { address: '0x293Ed38530005620e4B28600f196a97E1125dAAc', label: 'Mark Cuban' },
+  { address: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', label: 'Binance Whale' },
+]
+
+const FAMOUS_TRADERS = [
+  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', label: 'Vitalik Buterin' },
+  { address: '0x293Ed38530005620e4B28600f196a97E1125dAAc', label: 'Mark Cuban' },
+  { address: '0xf584F8728B874a6a5c7A8d4d387C9aae9172D62', label: 'Jump Trading' },
+  { address: '0xbcd5000f5c522856e710c5d274bb672b2f2eefbf', label: 'Polychain Capital' },
+  { address: '0x9696f59E4d72E237BE84ffd425DCaD154Bf96976', label: 'Wintermute' },
   { address: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', label: 'Binance Whale' },
   { address: '0x28C6c06298d514Db089934071355E5743bf21d60', label: 'Binance Hot' },
+  { address: '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', label: 'Binance Cold' },
 ]
 
 let wallets = JSON.parse(localStorage.getItem('wr_wallets') || 'null') || DEFAULT_WALLETS
@@ -371,6 +385,21 @@ async function api(params) {
     const r = await fetch('/api/etherscan?' + p)
     return await r.json()
   } catch { return null }
+}
+
+// ── FAMOUS TRADERS ───────────────────────────────────────────────────────
+function loadFamousTraders() {
+  let added = 0
+  for (const t of FAMOUS_TRADERS) {
+    if (!wallets.find(w => w.address.toLowerCase() === t.address.toLowerCase())) {
+      wallets.push(t)
+      added++
+    }
+  }
+  saveWallets()
+  renderWallets()
+  loadBalances()
+  showToast(`⭐ ${added} Famous Traders hinzugefügt`, 'Vitalik, Mark Cuban, Jump Trading, Wintermute…')
 }
 
 // ── ALERTS ────────────────────────────────────────────────────────────────
